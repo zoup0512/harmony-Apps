@@ -1,0 +1,84 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "记忆网格游戏模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "记忆网格游戏"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "记忆网格"
+    },
+    {
+      "name": "game_name",
+      "value": "记忆网格"
+    },
+    {
+      "name": "state_ready",
+      "value": "准备好！"
+    },
+    {
+      "name": "state_grid_anim",
+      "value": "注意..."
+    },
+    {
+      "name": "state_show_challenge",
+      "value": "记住这些位置！"
+    },
+    {
+      "name": "state_user_input",
+      "value": "点击你记住的位置"
+    },
+    {
+      "name": "state_success",
+      "value": "正确！"
+    },
+    {
+      "name": "state_failure",
+      "value": "错误！"
+    },
+    {
+      "name": "state_game_over",
+      "value": "游戏结束"
+    },
+    {
+      "name": "level_label",
+      "value": "关卡"
+    },
+    {
+      "name": "score_label",
+      "value": "得分"
+    },
+    {
+      "name": "pause_title",
+      "value": "游戏暂停"
+    },
+    {
+      "name": "btn_resume",
+      "value": "继续游戏"
+    },
+    {
+      "name": "btn_restart",
+      "value": "重新开始"
+    },
+    {
+      "name": "btn_exit",
+      "value": "退出游戏"
+    },
+    {
+      "name": "game_over_title",
+      "value": "游戏结束"
+    },
+    {
+      "name": "btn_play_again",
+      "value": "再玩一次"
+    },
+    {
+      "name": "stars_label",
+      "value": "星级"
+    }
+  ]
+}

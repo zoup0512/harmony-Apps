@@ -1,0 +1,6 @@
+{
+  "name": "rtspencoder",
+  "types": "./Index.d.ts",
+  "version": "1.0.0",
+  "description": "Native RTSP encoder module"
+}

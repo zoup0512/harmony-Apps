@@ -1,0 +1,104 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B00375F562757A4CA7B3FBC4E2F5CA2C025180D14EEE5E2F29CA4E01ADF0B4445F6D7A013826902",
+          "profile": "./sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./sign/debug/debug.p12",
+          "storePassword": "0000001B5A99BD948F8571EBF136A29FABB4EA49C417A74B5EA14CF1340299B529C9A3CCFA97B065321E4B"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "cams",
+      "srcPath": "./cams",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fastfurious",
+      "srcPath": "./fastfurious",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "kart",
+      "srcPath": "./kart",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "memorygame",
+      "srcPath": "./memorygame",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "libwlmedia",
+      "srcPath": "./libwlmedia",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "modelVersion": "6.1.0",
+  "description": "HarmonyOS Apps collection - multiple apps as modules",
+  "dependencies": {},
+  "devDependencies": {
+    "@ohos/hypium": "1.0.21"
+  }
+}

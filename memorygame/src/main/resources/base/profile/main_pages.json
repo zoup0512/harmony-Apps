@@ -1,0 +1,31 @@
+{
+  "src": [
+    "pages/MainPage",
+    "pages/MemoryGridPage",
+    "pages/RotatingGridPage",
+    "pages/SchultzTablesPage",
+    "pages/Game248Page",
+    "pages/HexagonsPage",
+    "pages/ColorsPage",
+    "pages/LikePreviousPage",
+    "pages/AllTheSamePage",
+    "pages/CorrectlyPage",
+    "pages/MoreLessPage",
+    "pages/OneAndOnlyPage",
+    "pages/SymmetryPage",
+    "pages/WhosNewPage",
+    "pages/FollowThePathPage",
+    "pages/ImageVortexPage",
+    "pages/FindThePicturePage",
+    "pages/FindAllPage",
+    "pages/SortTheDigitsPage",
+    "pages/PaperPlanesPage",
+    "pages/CountEmAllPage",
+    "pages/PyramidsPage",
+    "pages/CatchThemPage",
+    "pages/LaserPage",
+    "pages/MatchPairsThemePage",
+    "pages/MatchPairsDifficultyPage",
+    "pages/MatchPairsGamePage"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "赛车游戏模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "速度与激情6 赛车游戏"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "速度与激情6"
+    }
+  ]
+}

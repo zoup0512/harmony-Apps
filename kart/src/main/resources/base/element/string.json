@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "3D Kart racing game"
+    },
+    {
+      "name": "ability_desc",
+      "value": "3D Kart racing game"
+    },
+    {
+      "name": "ability_label",
+      "value": "3D卡丁车"
+    }
+  ]
+}

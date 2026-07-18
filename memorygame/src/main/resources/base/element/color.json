@@ -1,0 +1,52 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#E5F6FE"
+    },
+    {
+      "name": "bg_main",
+      "value": "#E5F6FE"
+    },
+    {
+      "name": "cell_default",
+      "value": "#E0E0E0"
+    },
+    {
+      "name": "cell_pattern",
+      "value": "#4CAF50"
+    },
+    {
+      "name": "cell_selected",
+      "value": "#2196F3"
+    },
+    {
+      "name": "heart_color",
+      "value": "#F44336"
+    },
+    {
+      "name": "state_ready",
+      "value": "#2196F3"
+    },
+    {
+      "name": "state_grid_anim",
+      "value": "#9C27B0"
+    },
+    {
+      "name": "state_challenge",
+      "value": "#FFC107"
+    },
+    {
+      "name": "state_input",
+      "value": "#4CAF50"
+    },
+    {
+      "name": "state_success",
+      "value": "#4CAF50"
+    },
+    {
+      "name": "state_failure",
+      "value": "#F44336"
+    }
+  ]
+}

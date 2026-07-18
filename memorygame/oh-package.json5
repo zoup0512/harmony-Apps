@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.1.0",
+  "name": "memorygame",
+  "version": "1.0.0",
+  "description": "Memory brain training game entry module",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

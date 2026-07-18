@@ -1,0 +1,13 @@
+{
+  "rtmp": {
+    "url": "rtmp://www.razor51.site/live/3/livestream",
+    "streamKey": "secret=0f6c7ea45242453eaa843dacafc241a6",
+    "username": "",
+    "password": "",
+    "port": 1935
+  },
+  "hls": {
+    "name": "默认HLS流",
+    "url": "http://www.razor51.site:2022/live/1/livestream.m3u8"
+  }
+}

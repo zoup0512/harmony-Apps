@@ -1,0 +1,9 @@
+{
+  "name": "kart",
+  "version": "1.0.0",
+  "description": "3D Kart racing game entry module",
+  "main": "",
+  "author": "razor",
+  "license": "MIT",
+  "dependencies": {}
+}

@@ -49,7 +49,11 @@ export struct ActivityStreamScreen {
   accentColor: string = '#20B486';
   onPrimaryColor: string = '#FFFFFF';
   surfaceVariantColor: string = '#F0F1F5';
+  secondaryContainerColor: string = '#D6F3E8';
+  errorColor: string = '#E53935';
+  outlineVariantColor: string = '#E8E9ED';
   onOpenRecording: (file: RecordingFile) => void = () => {};
+  onRefreshRecordings: () => void = () => {};
   rtmpUrlInput: string = '';
   rtmpStreamKeyInput: string = '';
   rtmpUsernameInput: string = '';
@@ -118,18 +122,45 @@ export struct ActivityStreamScreen {
     }
   }
 
+  private cameraDisplayName(recording: RecordingFile): string {
+    return recording.cameraName && recording.cameraName.trim() !== ''
+      ? recording.cameraName
+      : getContext(this).resourceManager.getStringByNameSync('recording_unknown_camera');
+  }
+
+  private recordingMetaText(recording: RecordingFile): string {
+    const timeStr = recording.startTime ? new Date(recording.startTime).toLocaleTimeString() : '';
+    const sizeStr = readableFileSize(recording.fileSize);
+    return timeStr ? `${timeStr} · ${sizeStr}` : sizeStr;
+  }
+
+  private personEventMetaText(evt: PersonEventLog): string {
+    const template = getContext(this).resourceManager.getStringByNameSync('person_event_meta');
+    return template.replace('%s', `${(evt.confidence * 100).toFixed(0)}%`).replace('%s', evt.bounds);
+  }
+
+  private activityCountText(): string {
+    return getContext(this).resourceManager.getStringByNameSync('activity_log_count').replace('%d', String(this.recordings.length));
+  }
+
   build(): void {
     Column() {
-        Row({ space: 10 }) {
+        Text($r('app.string.stream_mode_label'))
+          .fontSize(12)
+          .fontColor(this.onSurfaceVariantColor)
+          .fontWeight(FontWeight.Medium)
+          .width('100%')
+
+        Row({ space: 4 }) {
           Text($r('app.string.rtsp_server'))
               .fontSize(14)
               .fontColor(this.selectedStreamTool === 'rtsp' ? this.onPrimaryColor : this.onSurfaceVariantColor)
               .fontWeight(this.selectedStreamTool === 'rtsp' ? FontWeight.Medium : FontWeight.Normal)
               .layoutWeight(1)
               .textAlign(TextAlign.Center)
-              .padding({ top: 10, bottom: 10 })
-              .backgroundColor(this.selectedStreamTool === 'rtsp' ? this.accentColor : this.surfaceVariantColor)
-              .borderRadius(12)
+              .padding({ top: 9, bottom: 9 })
+              .backgroundColor(this.selectedStreamTool === 'rtsp' ? this.accentColor : Color.Transparent)
+              .borderRadius(10)
               .onClick(() => {
                 this.selectedStreamTool = 'rtsp';
                 if (this.streamManager) {
@@ -143,9 +174,9 @@ export struct ActivityStreamScreen {
               .fontWeight(this.selectedStreamTool === 'rtmp' ? FontWeight.Medium : FontWeight.Normal)
               .layoutWeight(1)
               .textAlign(TextAlign.Center)
-              .padding({ top: 10, bottom: 10 })
-              .backgroundColor(this.selectedStreamTool === 'rtmp' ? this.accentColor : this.surfaceVariantColor)
-              .borderRadius(12)
+              .padding({ top: 9, bottom: 9 })
+              .backgroundColor(this.selectedStreamTool === 'rtmp' ? this.accentColor : Color.Transparent)
+              .borderRadius(10)
               .onClick(() => {
                 this.selectedStreamTool = 'rtmp';
                 if (this.streamManager) {
@@ -160,34 +191,54 @@ export struct ActivityStreamScreen {
               })
           }
           .width('100%')
+          .padding(3)
+          .backgroundColor(this.surfaceVariantColor)
+          .borderRadius(13)
+          .margin({ top: 8 })
 
           // Phone camera streaming card
           Column() {
             Row() {
-              Column() {
+              Row({ space: 8 }) {
+                SymbolGlyph($r('sys.symbol.video_fill'))
+                  .fontSize(17)
+                  .fontColor([this.accentColor])
                 Text(this.selectedStreamTool === 'rtmp' ? $r('app.string.rtmp_stream_to_server') : $r('app.string.phone_rtsp_stream'))
                   .fontSize(16)
                   .fontColor(this.onSurfaceColor)
                   .fontWeight(FontWeight.Bold)
-                Text(this.statusText)
-                  .fontSize(12)
-                  .fontColor(this.onSurfaceVariantColor)
-                  .margin({ top: 4 })
               }
               .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
 
-              Text(this.isStreaming ? $r('app.string.status_running') : $r('app.string.status_standby_btn'))
-                .fontSize(12)
-                .fontColor(this.isStreaming ? this.onPrimaryColor : this.onSurfaceVariantColor)
+              Row({ space: 5 }) {
+                Circle({ width: 6, height: 6 })
+                  .fill(this.isStreaming ? this.onPrimaryColor : this.onSurfaceVariantColor)
+                Text(this.isStreaming ? $r('app.string.status_running') : $r('app.string.status_standby_btn'))
+                  .fontSize(12)
+                  .fontColor(this.isStreaming ? this.onPrimaryColor : this.onSurfaceVariantColor)
+                  .fontWeight(FontWeight.Medium)
+              }
                 .padding({ left: 12, right: 12, top: 6, bottom: 6 })
                 .backgroundColor(this.isStreaming ? this.accentColor : this.surfaceVariantColor)
                 .borderRadius(999)
             }
             .width('100%')
             .justifyContent(FlexAlign.SpaceBetween)
+            .alignItems(VerticalAlign.Center)
 
-            Stack() {
+            Text(this.statusText)
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 8 })
+              .width('100%')
+
+            Text($r('app.string.phone_camera_hint'))
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 4 })
+              .width('100%')
+
+            Stack({ alignContent: Alignment.TopStart }) {
               XComponent({
                 id: 'rtspCameraPreview',
                 type: XComponentType.SURFACE,
@@ -214,6 +265,21 @@ export struct ActivityStreamScreen {
                   .fontSize(16)
                   .fontColor('#FFFFFF80')
               }
+
+              if (this.isStreaming) {
+                Row({ space: 5 }) {
+                  Circle({ width: 6, height: 6 })
+                    .fill(this.errorColor)
+                  Text($r('app.string.status_live'))
+                    .fontSize(11)
+                    .fontColor('#FFFFFF')
+                    .fontWeight(FontWeight.Bold)
+                }
+                .padding({ left: 9, right: 9, top: 4, bottom: 4 })
+                .backgroundColor('#00000080')
+                .borderRadius(999)
+                .margin(10)
+              }
             }
             .width('100%')
             .aspectRatio(4 / 3)
@@ -222,20 +288,35 @@ export struct ActivityStreamScreen {
             .margin({ top: 12 })
             .clip(true)
 
-            Text(this.streamTargetText())
-              .fontSize(12)
-              .fontColor(this.onSurfaceVariantColor)
-              .margin({ top: 12 })
+            Row({ space: 6 }) {
+              SymbolGlyph($r('sys.symbol.link'))
+                .fontSize(14)
+                .fontColor([this.onSurfaceVariantColor])
+              Text(this.streamTargetText())
+                .fontSize(12)
+                .fontColor(this.onSurfaceVariantColor)
+                .layoutWeight(1)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .width('100%')
+            .margin({ top: 12 })
 
             if (this.selectedStreamTool === 'rtsp') {
               Column() {
-                QRCode(this.rtspAddress)
-                  .width(160)
-                  .height(160)
+                Column() {
+                  QRCode(this.rtspAddress)
+                    .width(150)
+                    .height(150)
+                }
+                .padding(10)
+                .backgroundColor('#FFFFFF')
+                .borderRadius(12)
+
                 Text($r('app.string.scan_to_connect'))
                   .fontSize(12)
                   .fontColor(this.onSurfaceVariantColor)
-                  .margin({ top: 8 })
+                  .margin({ top: 10 })
               }
               .width('100%')
               .alignItems(HorizontalAlign.Center)
@@ -248,6 +329,10 @@ export struct ActivityStreamScreen {
             Row({ space: 10 }) {
               Button(this.useFrontCamera ? $r('app.string.switch_to_back') : $r('app.string.switch_to_front'))
                 .layoutWeight(1)
+                .height(46)
+                .fontColor(this.onSurfaceColor)
+                .backgroundColor(this.surfaceVariantColor)
+                .borderRadius(12)
                 .onClick(() => {
                   if (this.streamManager) {
                     console.info(`ActivityStreamScreen switchCamera onClick: BEFORE ui_useFrontCamera=${this.useFrontCamera}, mgr_useFrontCamera=${this.streamManager.isFrontCamera()}`);
@@ -268,6 +353,10 @@ export struct ActivityStreamScreen {
                 })
               Button(this.isStreaming ? $r('app.string.stop_stream') : $r('app.string.start_stream'))
                 .layoutWeight(1)
+                .height(46)
+                .fontColor(this.onPrimaryColor)
+                .backgroundColor(this.isStreaming ? this.errorColor : this.accentColor)
+                .borderRadius(12)
                 .onClick(() => {
                   if (this.isStreaming) {
                     this.streamManager?.stopStream();
@@ -302,21 +391,6 @@ export struct ActivityStreamScreen {
                 .fontWeight(FontWeight.Medium)
                 .layoutWeight(1)
 
-              if (this.personDetectionEnabled && this.personDetected) {
-                Row({ space: 6 }) {
-                  Circle({ width: 8, height: 8 })
-                    .fill('#FF3B30')
-                  Text($r('app.string.person_detected'))
-                    .fontSize(12)
-                    .fontColor('#FF3B30')
-                    .fontWeight(FontWeight.Medium)
-                }
-              } else if (this.personDetectionEnabled) {
-                Text($r('app.string.person_detection_idle'))
-                  .fontSize(12)
-                  .fontColor(this.onSurfaceVariantColor)
-              }
-
               Toggle({ type: ToggleType.Switch, isOn: this.personDetectionEnabled })
                 .onChange((on: boolean) => {
                   this.personDetectionEnabled = on;
@@ -325,6 +399,20 @@ export struct ActivityStreamScreen {
             }
             .width('100%')
             .justifyContent(FlexAlign.SpaceBetween)
+            .alignItems(VerticalAlign.Center)
+
+            if (this.personDetectionEnabled) {
+              Divider().color(this.outlineVariantColor).margin({ top: 12, bottom: 12 })
+              Row({ space: 6 }) {
+                Circle({ width: 8, height: 8 })
+                  .fill(this.personDetected ? this.errorColor : this.onSurfaceVariantColor)
+                Text(this.personDetected ? $r('app.string.person_detected') : $r('app.string.person_detection_idle'))
+                  .fontSize(13)
+                  .fontColor(this.personDetected ? this.errorColor : this.onSurfaceVariantColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+              .width('100%')
+            }
           }
           .width('100%')
           .borderRadius(20)
@@ -333,11 +421,20 @@ export struct ActivityStreamScreen {
           .margin({ top: 14 })
 
           if (this.personDetectionEnabled) {
-            Text($r('app.string.person_event_log'))
-              .fontSize(16)
-              .fontColor(this.onSurfaceVariantColor)
-              .fontWeight(FontWeight.Medium)
-              .margin({ top: 14, bottom: 4 })
+            Row() {
+              Text($r('app.string.person_event_log'))
+                .fontSize(16)
+                .fontColor(this.onSurfaceVariantColor)
+                .fontWeight(FontWeight.Medium)
+                .layoutWeight(1)
+              if (this.personEvents.length > 0) {
+                Text(String(this.personEvents.length))
+                  .fontSize(12)
+                  .fontColor(this.onSurfaceVariantColor)
+              }
+            }
+            .width('100%')
+            .margin({ top: 14, bottom: 4 })
 
             if (this.personEvents.length === 0) {
               Text($r('app.string.person_no_events'))
@@ -349,22 +446,22 @@ export struct ActivityStreamScreen {
             } else {
               ForEach(this.personEvents, (evt: PersonEventLog) => {
                 Row() {
+                  Circle({ width: 8, height: 8 })
+                    .fill(this.errorColor)
+                    .margin({ right: 12 })
+
                   Column() {
                     Text(new Date(evt.timestamp).toLocaleTimeString())
                       .fontSize(14)
                       .fontColor(this.onSurfaceColor)
                       .fontWeight(FontWeight.Medium)
-                    Text(`confidence: ${(evt.confidence * 100).toFixed(0)}% · ${evt.bounds}`)
+                    Text(this.personEventMetaText(evt))
                       .fontSize(12)
                       .fontColor(this.onSurfaceVariantColor)
                       .margin({ top: 2 })
                   }
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)
-
-                  Circle({ width: 8, height: 8 })
-                    .fill('#FF3B30')
-                    .margin({ left: 10 })
                 }
                 .width('100%')
                 .borderRadius(14)
@@ -375,51 +472,104 @@ export struct ActivityStreamScreen {
             }
           }
 
-          Text($r('app.string.activity_log'))
-            .fontSize(16)
-            .fontColor(this.onSurfaceVariantColor)
-            .fontWeight(FontWeight.Medium)
-            .margin({ top: 14, bottom: 4 })
-
-          if (this.recordings.length === 0) {
-            Text($r('app.string.no_activity'))
+          Row() {
+            Text($r('app.string.activity_log'))
               .fontSize(16)
               .fontColor(this.onSurfaceVariantColor)
-              .width('100%')
-              .textAlign(TextAlign.Center)
-              .padding(32)
-          } else {
-            ForEach(this.recordings, (recording: RecordingFile) => {
-              Row() {
-                Column() {
-                  Text(recording.fileName)
-                    .fontSize(16)
-                    .fontColor(this.onSurfaceColor)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  Text(recording.filePath)
-                    .fontSize(12)
-                    .fontColor(this.onSurfaceVariantColor)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                    .margin({ top: 4 })
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Start)
+              .fontWeight(FontWeight.Medium)
+              .layoutWeight(1)
 
-                Text($r('app.string.action_view'))
-                  .fontSize(16)
-                  .fontColor(this.accentColor)
-                  .fontWeight(FontWeight.Medium)
-                  .margin({ left: 10 })
+            if (this.recordings.length > 0) {
+              Text(this.activityCountText())
+                .fontSize(12)
+                .fontColor(this.onSurfaceVariantColor)
+                .margin({ right: 12 })
+            }
+
+            SymbolGlyph($r('sys.symbol.arrow_clockwise'))
+              .fontSize(18)
+              .fontColor([this.accentColor])
+              .onClick(() => this.onRefreshRecordings())
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+          .margin({ top: 14, bottom: 4 })
+
+          if (this.recordings.length === 0) {
+            Column() {
+              Stack() {
+                Circle({ width: 88, height: 88 })
+                  .fill(this.secondaryContainerColor)
+                SymbolGlyph($r('sys.symbol.histogram'))
+                  .fontSize(36)
+                  .fontColor([this.accentColor])
               }
-              .width('100%')
-              .borderRadius(18)
-              .backgroundColor(this.surfaceColor)
-              .padding(16)
-              .margin({ top: 14 })
-              .onClick(() => this.onOpenRecording(recording))
-            })
+              .width(88)
+              .height(88)
+
+              Text($r('app.string.no_activity'))
+                .fontSize(16)
+                .fontColor(this.onSurfaceColor)
+                .fontWeight(FontWeight.Medium)
+                .margin({ top: 16 })
+              Text($r('app.string.no_activity_hint'))
+                .fontSize(13)
+                .fontColor(this.onSurfaceVariantColor)
+                .textAlign(TextAlign.Center)
+                .margin({ top: 6 })
+            }
+            .width('100%')
+            .padding({ top: 28, bottom: 28 })
+            .alignItems(HorizontalAlign.Center)
+          } else {
+            ForEach(groupSnapshotsByDate(this.recordings, getContext(this)), (group: SnapshotGroup) => {
+              Text(group.label)
+                .fontSize(14)
+                .fontColor(this.onSurfaceVariantColor)
+                .fontWeight(FontWeight.Medium)
+                .width('100%')
+                .margin({ top: 12 })
+
+              ForEach(group.items, (recording: RecordingFile) => {
+                Row() {
+                  Stack() {
+                    Circle({ width: 44, height: 44 })
+                      .fill(this.secondaryContainerColor)
+                    SymbolGlyph($r('sys.symbol.video_fill'))
+                      .fontSize(18)
+                      .fontColor([this.accentColor])
+                  }
+                  .width(44)
+                  .height(44)
+                  .margin({ right: 12 })
+
+                  Column() {
+                    Text(this.cameraDisplayName(recording))
+                      .fontSize(15)
+                      .fontColor(this.onSurfaceColor)
+                      .fontWeight(FontWeight.Medium)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    Text(this.recordingMetaText(recording))
+                      .fontSize(12)
+                      .fontColor(this.onSurfaceVariantColor)
+                      .margin({ top: 3 })
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+
+                  SymbolGlyph($r('sys.symbol.chevron_right'))
+                    .fontSize(18)
+                    .fontColor([this.onSurfaceVariantColor])
+                }
+                .width('100%')
+                .borderRadius(16)
+                .backgroundColor(this.surfaceColor)
+                .padding(12)
+                .margin({ top: 8 })
+                .onClick(() => this.onOpenRecording(recording))
+              }, (recording: RecordingFile) => recording.filePath)
+            }, (group: SnapshotGroup) => `${group.label}_${group.items.map(i => i.filePath).join(',')}`)
           }
         }
         .width('100%')

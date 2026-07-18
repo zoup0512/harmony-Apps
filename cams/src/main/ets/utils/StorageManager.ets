@@ -52,11 +52,18 @@ export class StorageManager {
         try {
           const stat = fileIo.statSync(filePath);
           if (stat.isDirectory()) continue;
+          const cameraName = fileName.includes('_')
+            ? fileName.substring(0, fileName.lastIndexOf('_'))
+            : fileName.replace(/\.[^.]+$/, '');
           result.push(createRecordingFile(
             '',
             fileName,
             filePath,
             stat.size,
+            stat.mtime * 1000,
+            null,
+            '',
+            cameraName,
           ));
         } catch {
           // skip
@@ -65,6 +72,7 @@ export class StorageManager {
     } catch {
       // dir not exist
     }
+    result.sort((a, b) => (b.startTime ?? 0) - (a.startTime ?? 0));
     return result;
   }
 

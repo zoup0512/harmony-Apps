@@ -393,11 +393,15 @@ struct MainPage {
                     accentColor: this.colors.primary,
                     onPrimaryColor: this.colors.onPrimary,
                     surfaceVariantColor: this.colors.surfaceVariant,
+                    secondaryContainerColor: this.colors.secondaryContainer,
+                    errorColor: this.colors.error,
+                    outlineVariantColor: this.colors.outlineVariant,
                     rtmpUrlInput: this.uiState.settings.rtmpUrlInput,
                     rtmpStreamKeyInput: this.uiState.settings.rtmpStreamKeyInput,
                     rtmpUsernameInput: this.uiState.settings.rtmpUsernameInput,
                     rtmpPasswordInput: this.uiState.settings.rtmpPasswordInput,
                     onOpenRecording: (file: RecordingFile) => this.onOpenRecording(file),
+                    onRefreshRecordings: () => this.onRefreshRecordings(),
                   })
                 } else if (this.uiState.selectedTab === 3) {
                   SnapshotScreen({
@@ -1012,6 +1016,10 @@ struct MainPage {
   private onOpenRecording(file: RecordingFile): void {
     this.vm?.onCurrentRecordingDialogChange(file);
     this.syncState();
+  }
+
+  private onRefreshRecordings(): void {
+    this.vm?.reloadRecordings().then(() => this.syncState());
   }
 
   private onDeleteSnapshot(file: RecordingFile): void {

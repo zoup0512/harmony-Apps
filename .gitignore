@@ -18,6 +18,7 @@ entry/build/
 feature/build/
 */build/
 */oh-build/
+.cxx/
 oh_modules/
 node_modules/
 local.properties

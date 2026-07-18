@@ -1,6 +1,7 @@
 import { CameraDevice } from '../model/CameraDevice';
 import { RecordingFile, readableFileSize } from '../model/RecordingFile';
 import { promptAction } from '@kit.ArkUI';
+import { PlaybackStreamType, playbackStreamTypeFromUrl } from '../utils/PlaybackModels';
 
 const XCOMPONENT_TYPE_SURFACE = 0;
 
@@ -277,50 +278,19 @@ export struct CameraGridCard {
             .width('100%')
             .height('100%')
             .objectFit(ImageFit.Cover)
-            .borderRadius({ topLeft: 12, topRight: 12 })
         } else {
           Column()
             .width('100%')
-            .aspectRatio(1.55)
-            .borderRadius({ topLeft: 12, topRight: 12 })
+            .height('100%')
             .linearGradient({
               direction: GradientDirection.Right,
               colors: [[this.surfaceVariantColor, 0.0], [this.isPlaying ? this.secondaryContainerColor : this.surfaceVariantColor, 1.0]]
             })
         }
-
-        Row() {
-          Circle({ width: 6, height: 6 })
-            .fill(this.getStatusDotColor())
-            .margin({ right: 4 })
-          Text(this.getStatusLabel())
-            .fontSize(10)
-            .fontColor('#FFFFFFEB')
-            .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-        }
-        .padding({ left: 6, right: 8, top: 4, bottom: 4 })
-        .backgroundColor('#6B000000')
-        .borderRadius(999)
-        .align(Alignment.BottomStart)
-        .margin({ left: 8, bottom: 8 })
-
-        if (this.isPlaying) {
-          Text($r('app.string.badge_rec'))
-            .fontSize(10)
-            .fontColor('#FFFFFFEB')
-            .fontWeight(FontWeight.Bold)
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .backgroundColor(this.errorColor)
-            .borderRadius(999)
-            .align(Alignment.TopEnd)
-            .margin({ right: 8, top: 8 })
-        }
-
       }
       .width('100%')
       .aspectRatio(1.55)
-      .borderRadius({ topLeft: 12, topRight: 12 })
+      .borderRadius(12)
       .clip(true)
 
       Row() {
@@ -332,7 +302,7 @@ export struct CameraGridCard {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
 
-        Text($r('app.string.badge_cam'))
+        Text(this.getStreamBadge())
           .fontSize(12)
           .fontColor(this.onSurfaceVariantColor)
           .padding({ left: 14, right: 14, top: 6, bottom: 6 })
@@ -342,14 +312,9 @@ export struct CameraGridCard {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
-      .padding({ left: 12, right: 12 })
       .margin({ top: 10, bottom: 12 })
     }
     .width('100%')
-    .backgroundColor(this.surfaceColor)
-    .borderRadius(12)
-    .border({ width: 1, color: this.outlineVariantColor })
-    .shadow({ radius: 8, color: '#1A000000', offsetX: 0, offsetY: 2 })
     .onClick(() => this.onCardClick())
     .gesture(
       LongPressGesture()
@@ -357,16 +322,12 @@ export struct CameraGridCard {
     )
   }
 
-  private getStatusLabel(): ResourceStr {
-    if (this.isPlaying) return $r('app.string.status_live');
-    if (this.camera.isConnected) return $r('app.string.status_standby');
-    return $r('app.string.status_offline');
-  }
-
-  private getStatusDotColor(): ResourceColor {
-    if (this.isPlaying) return this.errorColor;
-    if (this.camera.isConnected) return this.accentColor;
-    return this.onSurfaceVariantColor;
+  private getStreamBadge(): string {
+    const streamType = playbackStreamTypeFromUrl(this.camera.rtspUrl);
+    if (streamType === PlaybackStreamType.RTSP) return 'RTSP';
+    if (streamType === PlaybackStreamType.HTTP || streamType === PlaybackStreamType.HTTPS) return 'HTTP';
+    if (streamType === PlaybackStreamType.RTMP) return 'RTMP';
+    return getContext(this).resourceManager.getStringByNameSync('badge_cam');
   }
 
 }
@@ -390,12 +351,15 @@ export struct PlaybackFullscreenScreen {
   onMute: () => void = () => {};
   onSnapshot: () => void = () => {};
   onToggleRecord: () => void = () => {};
+  onMore: () => void = () => {};
   onSwipeLeft: () => void = () => {};
   onSwipeRight: () => void = () => {};
   @State controlsVisible: boolean = false;
   @State zoomScale: number = 1.0;
   @Prop videoWidth: number = 0;
   @Prop videoHeight: number = 0;
+  @State containerWidth: number = 0;
+  @State containerHeight: number = 0;
   private controlsTimerId: number = -1;
   private xComponentController: XComponentController = new XComponentController();
 
@@ -416,6 +380,22 @@ export struct PlaybackFullscreenScreen {
     }
   }
 
+  private getContainWidth(): Length {
+    if (this.videoWidth <= 0 || this.videoHeight <= 0) return '100%';
+    if (this.containerWidth <= 0 || this.containerHeight <= 0) return '100%';
+    const videoRatio = this.videoWidth / this.videoHeight;
+    const containerRatio = this.containerWidth / this.containerHeight;
+    return containerRatio > videoRatio ? this.containerHeight * videoRatio : this.containerWidth;
+  }
+
+  private getContainHeight(): Length {
+    if (this.videoWidth <= 0 || this.videoHeight <= 0) return '100%';
+    if (this.containerWidth <= 0 || this.containerHeight <= 0) return '100%';
+    const videoRatio = this.videoWidth / this.videoHeight;
+    const containerRatio = this.containerWidth / this.containerHeight;
+    return containerRatio > videoRatio ? this.containerHeight : this.containerWidth / videoRatio;
+  }
+
   build(): void {
     Stack() {
       Column() {
@@ -428,14 +408,23 @@ export struct PlaybackFullscreenScreen {
             const surfaceId = this.xComponentController.getXComponentSurfaceId();
             this.onBindSurface(surfaceId);
           })
-          .width('100%')
-          .aspectRatio(this.videoWidth > 0 && this.videoHeight > 0 ? this.videoWidth / this.videoHeight : undefined)
+          .width(this.getContainWidth())
+          .height(this.getContainHeight())
           .scale({ x: this.zoomScale, y: this.zoomScale })
       }
       .width('100%')
       .height('100%')
       .backgroundColor('#000000')
       .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .onAreaChange((_e: Area, area: Area) => {
+        const w = Number(area.width);
+        const h = Number(area.height);
+        if (w > 0 && h > 0 && (w !== this.containerWidth || h !== this.containerHeight)) {
+          this.containerWidth = w;
+          this.containerHeight = h;
+        }
+      })
       .gesture(
         TapGesture({ count: 2 })
           .onAction(() => {
@@ -523,52 +512,63 @@ export struct PlaybackFullscreenScreen {
             .layoutWeight(1)
 
           Row() {
-            Row() {
-              SymbolGlyph($r('sys.symbol.camera_fill'))
+            Row({ space: 16 }) {
+              SymbolGlyph($r('sys.symbol.camera'))
                 .fontSize(20)
-                .fontColor(['#FFFFFFB3'])
-                .width(40)
-                .height(40)
+                .fontColor(['#1B1B1D'])
+                .width(36)
+                .height(36)
                 .onClick(() => this.onSnapshot())
 
-              SymbolGlyph($r('sys.symbol.record_circle'))
-                .fontSize(20)
-                .fontColor([this.errorColor])
-                .width(40)
-                .height(40)
-                .onClick(() => this.onToggleRecord())
+              Stack() {
+                SymbolGlyph(this.isRecording ? $r('sys.symbol.circle_fill') : $r('sys.symbol.record_circle'))
+                  .fontSize(this.isRecording ? 18 : 20)
+                  .fontColor([this.isRecording ? this.errorColor : '#6B6F76'])
+              }
+              .width(36)
+              .height(36)
+              .onClick(() => this.onToggleRecord())
 
               Stack() {
-                Circle({ width: 56, height: 56 })
-                  .fill(this.accentColor)
+                Circle({ width: 44, height: 44 })
+                  .fill('#1B1B1D')
                 SymbolGlyph(this.isPlaying ? $r('sys.symbol.pause_fill') : $r('sys.symbol.play_fill'))
-                  .fontSize(24)
+                  .fontSize(22)
                   .fontColor(['#FFFFFF'])
-                  .fontWeight(FontWeight.Bold)
               }
-              .width(56)
-              .height(56)
+              .width(44)
+              .height(44)
               .onClick(() => this.onTogglePlayPause())
 
-              SymbolGlyph(this.isMuted ? $r('sys.symbol.speaker_slash_fill') : $r('sys.symbol.speaker_wave_2_fill'))
+              SymbolGlyph(this.isMuted ? $r('sys.symbol.speaker_slash') : $r('sys.symbol.speaker_wave_2'))
                 .fontSize(20)
-                .fontColor(['#FFFFFFB3'])
-                .width(40)
-                .height(40)
+                .fontColor(['#1B1B1D'])
+                .width(36)
+                .height(36)
                 .onClick(() => this.onMute())
+
+              Stack() {
+                Circle({ width: 22, height: 22 })
+                  .fill(Color.Transparent)
+                  .stroke('#1B1B1D')
+                  .strokeWidth(1.5)
+                Text('⋯')
+                  .fontSize(11)
+                  .fontColor('#1B1B1D')
+              }
+              .width(28)
+              .height(28)
+              .onClick(() => this.onMore())
             }
-            .width('50%')
-            .justifyContent(FlexAlign.SpaceEvenly)
-            .alignItems(VerticalAlign.Bottom)
+            .backgroundColor('#99FFFFFF')
+            .borderRadius(99)
+            .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+            .alignItems(VerticalAlign.Center)
           }
           .width('100%')
           .justifyContent(FlexAlign.Center)
-          .alignItems(VerticalAlign.Bottom)
-          .padding({ top: 10, bottom: 0 })
-          .linearGradient({
-            direction: GradientDirection.Top,
-            colors: [['#00000000', 0.0], ['#CC000000', 1.0]]
-          })
+          .alignItems(VerticalAlign.Center)
+          .padding({ top: 10, bottom: 18 })
         }
         .width('100%')
         .height('100%')

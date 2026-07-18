@@ -1,10 +1,11 @@
 import { GameEngine, GameState } from '../game/GameEngine';
 import { preferences } from '@kit.ArkData';
+import { image } from '@kit.ImageKit';
 
 const PREF_NAME = 'game_store';
 const KEY_HIGH_SCORE = 'high_score';
 
-const CAR_RES_NAMES: string[] = [
+const CAR_IMG_NAMES: string[] = [
   'car_player',
   'car_traffic_1',
   'car_traffic_2',
@@ -46,12 +47,19 @@ struct Index {
     this.loadCarImages();
   }
 
-  private loadCarImages(): void {
+  private async loadCarImages(): Promise<void> {
+    const context = this.getUIContext().getHostContext();
+    if (context === undefined) {
+      return;
+    }
+    const rm = context.resourceManager;
     const imgs: ImageBitmap[] = [];
-    for (let i = 0; i < CAR_RES_NAMES.length; i++) {
+    for (let i = 0; i < CAR_IMG_NAMES.length; i++) {
       try {
-        const bm = new ImageBitmap($r('app.media.' + CAR_RES_NAMES[i]));
-        imgs.push(bm);
+        const data = await rm.getMediaByName(CAR_IMG_NAMES[i]);
+        const imageSource = image.createImageSource(data.buffer);
+        const pixelMap = await imageSource.createPixelMap();
+        imgs.push(new ImageBitmap(pixelMap));
       } catch (e) {
         // 加载失败跳过，引擎会回退到程序化绘制
       }

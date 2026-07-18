@@ -5,12 +5,25 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "./sign/debug/debug.cer",
+          "certpath": "C:\\Users\\24790\\.ohos\\config\\default_harmony-Apps_VoUVgCwhzYcjzXjZKI69AawUCZda6m51ycy95lrH4ig=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001A4A997C57C389734DD46AE120F8FE44C7BFCFBB5E26B7F121E3575906741F98ACDDF13894DF47",
+          "profile": "C:\\Users\\24790\\.ohos\\config\\default_harmony-Apps_VoUVgCwhzYcjzXjZKI69AawUCZda6m51ycy95lrH4ig=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\24790\\.ohos\\config\\default_harmony-Apps_VoUVgCwhzYcjzXjZKI69AawUCZda6m51ycy95lrH4ig=.p12",
+          "storePassword": "0000001A93F093B4AEFB9630FAFBE1368A3F9D6D479F4CD49086F173E419BB70567AE95F397C2006C089"
+        }
+      },
+      {
+        "name": "cams_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./cams/sign/debug/debug.cer",
           "keyAlias": "debugKey",
           "keyPassword": "0000001B00375F562757A4CA7B3FBC4E2F5CA2C025180D14EEE5E2F29CA4E01ADF0B4445F6D7A013826902",
-          "profile": "./sign/debug/debug.p7b",
+          "profile": "./cams/sign/debug/debug.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "./sign/debug/debug.p12",
+          "storeFile": "./cams/sign/debug/debug.p12",
           "storePassword": "0000001B5A99BD948F8571EBF136A29FABB4EA49C417A74B5EA14CF1340299B529C9A3CCFA97B065321E4B"
         }
       }
@@ -19,6 +32,19 @@
       {
         "name": "default",
         "signingConfig": "default",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "cams",
+        "signingConfig": "cams_signing",
         "compatibleSdkVersion": "6.0.2(22)",
         "targetSdkVersion": "6.0.2(22)",
         "runtimeOS": "HarmonyOS",
@@ -47,7 +73,8 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "cams"
           ]
         }
       ]

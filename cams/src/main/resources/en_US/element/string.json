@@ -22,6 +22,12 @@
     { "name": "action_unlock", "value": "Unlock" },
     { "name": "action_view", "value": "View" },
     { "name": "action_copy", "value": "Copy" },
+    { "name": "action_snapshot", "value": "Snapshot" },
+    { "name": "action_start_recording", "value": "Start Recording" },
+    { "name": "action_stop_recording", "value": "Stop Recording" },
+    { "name": "action_mute", "value": "Mute" },
+    { "name": "action_unmute", "value": "Unmute" },
+    { "name": "toast_feature_coming_soon", "value": "Feature coming soon..." },
 
     { "name": "no_cameras", "value": "No Cameras" },
     { "name": "no_cameras_hint", "value": "Add RTSP / ONVIF devices, or try demo first" },

@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "Infuse 播放器" },
+    { "name": "module_desc", "value": "Infuse 播放器入口模块" },
+    { "name": "ability_desc", "value": "本地与网络媒体的优雅播放体验" }
+  ]
+}

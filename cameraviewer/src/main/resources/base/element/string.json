@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "IP Camera Viewer" },
+    { "name": "module_desc", "value": "IP Camera Viewer entry module" },
+    { "name": "ability_desc", "value": "IP camera viewer with snapshot list, quad view, ONVIF discovery and PTZ" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "color": [
+    { "name": "start_window_background", "value": "#0D1424" },
+    { "name": "brand_primary", "value": "#3B82F6" },
+    { "name": "brand_danger", "value": "#EF4444" },
+    { "name": "brand_ok", "value": "#22C55E" },
+    { "name": "brand_warn", "value": "#F59E0B" },
+    { "name": "bg_dark", "value": "#0D1424" },
+    { "name": "bg_card", "value": "#151F36" },
+    { "name": "bg_elevated", "value": "#1F2C4A" },
+    { "name": "text_primary", "value": "#EDF2FB" },
+    { "name": "text_secondary", "value": "#8A97B0" }
+  ]
+}

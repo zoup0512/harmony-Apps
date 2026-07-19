@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "摄像头监控" },
+    { "name": "module_desc", "value": "摄像头监控入口模块" },
+    { "name": "ability_desc", "value": "在一处查看你的所有 IP 摄像头" }
+  ]
+}

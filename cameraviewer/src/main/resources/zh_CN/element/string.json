@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "IP Camera Viewer" },
+    { "name": "module_desc", "value": "IP Camera Viewer 入口模块" },
+    { "name": "ability_desc", "value": "IP 摄像头查看器：快照列表、四分屏、ONVIF 发现与 PTZ 云台" }
+  ]
+}

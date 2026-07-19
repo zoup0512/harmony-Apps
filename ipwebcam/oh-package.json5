@@ -1,0 +1,1 @@
+{ "name": "ipwebcam", "version": "1.0.0", "description": "IP Webcam entry module", "main": "", "author": "razor.tools", "license": "Apache-2.0", "dependencies": {} }

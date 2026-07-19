@@ -1,0 +1,9 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "IP 摄像头" },
+    { "name": "module_desc", "value": "IP 摄像头入口模块" },
+    { "name": "ability_desc", "value": "把手机变成网络摄像头" },
+    { "name": "reason_camera", "value": "采集画面用于网络推流" },
+    { "name": "reason_mic", "value": "采集声音用于网络推流" }
+  ]
+}

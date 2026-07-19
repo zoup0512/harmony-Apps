@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "app_name", "value": "Web Video Cast" },
+    { "name": "module_desc", "value": "Web Video Cast entry module" },
+    { "name": "ability_desc", "value": "Browse the web and cast videos to your TV" }
+  ]
+}

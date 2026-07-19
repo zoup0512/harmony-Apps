@@ -1,0 +1,9 @@
+{
+  "name": "webvideocast",
+  "version": "1.0.0",
+  "description": "Web Video Cast entry module",
+  "main": "",
+  "author": "razor.tools",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

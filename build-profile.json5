@@ -26,6 +26,19 @@
           "storeFile": "./cams/sign/debug/debug.p12",
           "storePassword": "0000001B5A99BD948F8571EBF136A29FABB4EA49C417A74B5EA14CF1340299B529C9A3CCFA97B065321E4B"
         }
+      },
+      {
+        "name": "webvideocast_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./webvideocast/sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B000000",
+          "profile": "./webvideocast/sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./webvideocast/sign/debug/debug.p12",
+          "storePassword": "0000001B000000"
+        }
       }
     ],
     "products": [
@@ -45,6 +58,19 @@
       {
         "name": "cams",
         "signingConfig": "cams_signing",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "webvideocast",
+        "signingConfig": "webvideocast_signing",
         "compatibleSdkVersion": "6.0.2(22)",
         "targetSdkVersion": "6.0.2(22)",
         "runtimeOS": "HarmonyOS",
@@ -123,6 +149,19 @@
           "name": "default",
           "applyToProducts": [
             "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "webvideocast",
+      "srcPath": "./webvideocast",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "webvideocast"
           ]
         }
       ]

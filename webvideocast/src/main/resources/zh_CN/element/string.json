@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "app_name", "value": "网页视频投屏" },
+    { "name": "module_desc", "value": "网页视频投屏入口模块" },
+    { "name": "ability_desc", "value": "浏览网页并将视频投屏到电视" }
+  ]
+}

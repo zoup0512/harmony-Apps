@@ -370,6 +370,24 @@
     { "name": "dialog_feedback_title", "value": "App Feedback" },
     { "name": "dialog_feedback_message", "value": "Thanks for your continued support! If you enjoy the app, please consider leaving us a rating." },
     { "name": "dialog_feedback_later", "value": "Later" },
-    { "name": "dialog_feedback_rate", "value": "Rate Now" }
+    { "name": "dialog_feedback_rate", "value": "Rate Now" },
+
+    { "name": "ipcam_uptime", "value": "Uptime" },
+    { "name": "ipcam_torch", "value": "Torch" },
+    { "name": "ipcam_zoom", "value": "Zoom" },
+    { "name": "ipcam_how_to_connect_rtsp_hint", "value": "On the same Wi-Fi network, open the address above with VLC or any RTSP-capable player, or scan the QR code" },
+    { "name": "ipcam_how_to_connect_rtmp_hint", "value": "Video is pushed to the RTMP server configured in Settings; view it by pulling the stream from that server" },
+    { "name": "toast_address_copied", "value": "Address copied" },
+    { "name": "ipcam_video_settings", "value": "Video Settings" },
+    { "name": "ipcam_settings_locked_hint", "value": "Stop streaming to change" },
+    { "name": "ipcam_resolution", "value": "Resolution" },
+    { "name": "ipcam_quality", "value": "Quality" },
+    { "name": "ipcam_framerate", "value": "Frame Rate" },
+    { "name": "ipcam_resolution_480p", "value": "SD 480p" },
+    { "name": "ipcam_resolution_720p", "value": "HD 720p" },
+    { "name": "ipcam_resolution_1080p", "value": "Full HD 1080p" },
+    { "name": "ipcam_quality_low", "value": "Low" },
+    { "name": "ipcam_quality_balanced", "value": "Balanced" },
+    { "name": "ipcam_quality_high", "value": "High" }
   ]
 }

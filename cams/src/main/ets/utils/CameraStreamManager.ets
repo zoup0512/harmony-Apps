@@ -18,12 +18,22 @@ export interface StreamStatus {
   clientCount: number;
   personDetected: boolean;
   personEvents: PersonEventLog[];
+  torchSupported: boolean;
+  zoomMin: number;
+  zoomMax: number;
 }
 
 export interface PersonEventLog {
   timestamp: number;
   confidence: number;
   bounds: string;
+}
+
+export interface VideoConfig {
+  width: number;
+  height: number;
+  bitrate: number;
+  framerate: number;
 }
 
 export class CameraStreamManager {
@@ -59,6 +69,9 @@ export class CameraStreamManager {
   private height: number = 480;
   private bitrate: number = 1_200_000;
   private framerate: number = 30;
+  private torchSupported: boolean = false;
+  private torchOn: boolean = false;
+  private zoomRange: number[] = [1, 1];
 
   constructor(context: common.Context) {
     this.context = context;
@@ -89,6 +102,23 @@ export class CameraStreamManager {
       password: password,
     };
     console.info(`${TAG} RTMP config: host=${parsed.host}, port=${parsed.port}, app=${parsed.app}, key=${streamKey}`);
+  }
+
+  getVideoConfig(): VideoConfig {
+    return { width: this.width, height: this.height, bitrate: this.bitrate, framerate: this.framerate };
+  }
+
+  setVideoConfig(width: number, height: number, bitrate: number, framerate: number): boolean {
+    if (this.streaming) {
+      console.warn(`${TAG} setVideoConfig: cannot change while streaming`);
+      return false;
+    }
+    this.width = width;
+    this.height = height;
+    this.bitrate = bitrate;
+    this.framerate = framerate;
+    console.info(`${TAG} setVideoConfig: ${width}x${height} bitrate=${bitrate} fps=${framerate}`);
+    return true;
   }
 
   setPersonDetectionEnabled(enabled: boolean): void {
@@ -144,18 +174,132 @@ export class CameraStreamManager {
     return this.useFrontCamera;
   }
 
+  isPreviewReady(): boolean {
+    return this.previewReady;
+  }
+
+  hasTorchSupport(): boolean {
+    return this.torchSupported;
+  }
+
+  isTorchOn(): boolean {
+    return this.torchOn;
+  }
+
+  async setTorch(enabled: boolean): Promise<boolean> {
+    const session = this.session;
+    if (!session || !this.torchSupported) return false;
+    try {
+      const mode = enabled ? camera.FlashMode.FLASH_MODE_ALWAYS_OPEN : camera.FlashMode.FLASH_MODE_CLOSE;
+      if (!session.isFlashModeSupported(mode)) {
+        console.warn(`${TAG} setTorch: mode ${mode} not supported`);
+        return false;
+      }
+      session.setFlashMode(mode);
+      this.torchOn = enabled;
+      console.info(`${TAG} setTorch: ${enabled}`);
+      return true;
+    } catch (e) {
+      console.error(`${TAG} setTorch failed: ${(e as Error).message}`);
+      return false;
+    }
+  }
+
+  getZoomRange(): number[] {
+    return this.zoomRange;
+  }
+
+  getZoomRatio(): number {
+    const session = this.session;
+    if (!session) return 1;
+    try {
+      return session.getZoomRatio();
+    } catch (e) {
+      console.warn(`${TAG} getZoomRatio failed: ${(e as Error).message}`);
+      return 1;
+    }
+  }
+
+  async setZoomRatio(ratio: number): Promise<number> {
+    const session = this.session;
+    if (!session) return 1;
+    const min = this.zoomRange[0];
+    const max = this.zoomRange[1];
+    const clamped = Math.min(max, Math.max(min, ratio));
+    try {
+      session.setZoomRatio(clamped);
+      console.info(`${TAG} setZoomRatio: ${clamped}`);
+      return clamped;
+    } catch (e) {
+      console.error(`${TAG} setZoomRatio failed: ${(e as Error).message}`);
+      return this.getZoomRatio();
+    }
+  }
+
+  async restartPreview(): Promise<void> {
+    console.info(`${TAG} restartPreview BEGIN`);
+    if (this.streaming) {
+      console.warn(`${TAG} restartPreview: cannot restart while streaming`);
+      return;
+    }
+    if (this.session) {
+      try { await this.session.stop(); } catch (e) {
+        console.warn(`${TAG} restartPreview: session.stop() error: ${(e as Error).message}`);
+      }
+      try { this.session.release(); } catch (e) {
+        console.warn(`${TAG} restartPreview: session.release() error: ${(e as Error).message}`);
+      }
+      this.session = null;
+    }
+    if (this.cameraInput) {
+      try { this.cameraInput.close(); } catch (e) {
+        console.warn(`${TAG} restartPreview: cameraInput.close() error: ${(e as Error).message}`);
+      }
+      this.cameraInput = null;
+    }
+    if (this.previewOutput) {
+      try { this.previewOutput.release(); } catch (e) {
+        console.warn(`${TAG} restartPreview: previewOutput.release() error: ${(e as Error).message}`);
+      }
+      this.previewOutput = null;
+    }
+    if (this.detectionPreviewOutput) {
+      try { this.detectionPreviewOutput.release(); } catch (e) {
+        console.warn(`${TAG} restartPreview: detectionPreviewOutput.release() error: ${(e as Error).message}`);
+      }
+      this.detectionPreviewOutput = null;
+    }
+    if (this.imageReceiver) {
+      try { this.imageReceiver.release(); } catch (e) {
+        console.warn(`${TAG} restartPreview: imageReceiver.release() error: ${(e as Error).message}`);
+      }
+      this.imageReceiver = null;
+    }
+    this.previewReady = false;
+    console.info(`${TAG} restartPreview: old camera resources released, re-initializing...`);
+    await this.initPreview(this.previewSurfaceId);
+    console.info(`${TAG} restartPreview END: previewReady=${this.previewReady}`);
+  }
+
   private notifyStatus(): void {
     if (this.statusCallback) {
-      const clientCount = this.streamMode === 'rtsp' ? this.rtspServer.getClientCount() : 0;
-      this.statusCallback({
-        isStreaming: this.streaming,
-        isPreviewReady: this.previewReady,
-        statusText: this.getStatusText(),
-        clientCount: clientCount,
-        personDetected: this.personDetected,
-        personEvents: this.personEvents,
-      });
+      this.statusCallback(this.buildStatus(this.getStatusText()));
     }
+  }
+
+  private buildStatus(statusText: string): StreamStatus {
+    const clientCount = this.streamMode === 'rtsp' ? this.rtspServer.getClientCount() : 0;
+    return {
+      isStreaming: this.streaming,
+      isPreviewReady: this.previewReady,
+      statusText: statusText,
+      clientCount: clientCount,
+      personDetected: this.personDetected,
+      personEvents: this.personEvents,
+      torchSupported: this.torchSupported,
+      zoomMin: this.zoomRange[0],
+      zoomMax: this.zoomRange[1],
+    };
   }
 
   private getStatusText(): string {
@@ -202,14 +346,7 @@ export class CameraStreamManager {
       const hasPermission = await this.ensureCameraPermission();
       if (!hasPermission) {
         console.error(`${TAG} initPreview: CAMERA permission denied`);
-        this.statusCallback?.({
-          isStreaming: false,
-          isPreviewReady: false,
-          statusText: rstr(this.context, 'cam_status_need_camera_permission'),
-          clientCount: 0,
-          personDetected: false,
-          personEvents: this.personEvents,
-        });
+        this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_need_camera_permission')));
         return;
       }
       console.info(`${TAG} initPreview: camera permission granted`);
@@ -222,14 +359,7 @@ export class CameraStreamManager {
       console.info(`${TAG} initPreview: found ${cameras.length} cameras`);
       if (cameras.length === 0) {
         console.error(`${TAG} initPreview: No cameras found`);
-        this.statusCallback?.({
-          isStreaming: false,
-          isPreviewReady: false,
-          statusText: rstr(this.context, 'cam_status_no_camera'),
-          clientCount: 0,
-          personDetected: false,
-          personEvents: this.personEvents,
-        });
+        this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_no_camera')));
         return;
       }
 
@@ -288,14 +418,7 @@ export class CameraStreamManager {
       console.info(`${TAG} initPreview: VideoSession created: ${this.session !== null}`);
       if (!this.session || !this.cameraInput || !this.previewOutput) {
         console.error(`${TAG} initPreview: Failed to create session/input/output: session=${this.session !== null}, input=${this.cameraInput !== null}, output=${this.previewOutput !== null}`);
-        this.statusCallback?.({
-          isStreaming: false,
-          isPreviewReady: false,
-          statusText: rstr(this.context, 'cam_status_session_failed'),
-          clientCount: 0,
-          personDetected: false,
-          personEvents: this.personEvents,
-        });
+        this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_session_failed')));
         return;
       }
       console.info(`${TAG} initPreview: beginConfig...`);
@@ -316,19 +439,32 @@ export class CameraStreamManager {
       console.info(`${TAG} initPreview: session started`);
 
       this.previewReady = true;
+      this.torchOn = false;
+      if (this.session) {
+        try {
+          this.torchSupported = this.session.hasFlash();
+        } catch (e) {
+          this.torchSupported = false;
+          console.warn(`${TAG} initPreview: hasFlash() failed: ${(e as Error).message}`);
+        }
+        try {
+          const range = this.session.getZoomRatioRange();
+          this.zoomRange = (range && range.length >= 2) ? [range[0], range[1]] : [1, 1];
+        } catch (e) {
+          this.zoomRange = [1, 1];
+          console.warn(`${TAG} initPreview: getZoomRatioRange() failed: ${(e as Error).message}`);
+        }
+      } else {
+        this.torchSupported = false;
+        this.zoomRange = [1, 1];
+      }
+      console.info(`${TAG} initPreview: torchSupported=${this.torchSupported}, zoomRange=[${this.zoomRange[0]},${this.zoomRange[1]}]`);
       this.notifyStatus();
       console.info(`${TAG} initPreview END: success`);
     } catch (e) {
       const err = e as Error;
       console.error(`${TAG} initPreview EXCEPTION: ${err.message}, stack=${err.stack}`);
-      this.statusCallback?.({
-        isStreaming: false,
-        isPreviewReady: false,
-        statusText: rstr(this.context, 'cam_status_preview_init_failed', err.message),
-        clientCount: 0,
-        personDetected: false,
-        personEvents: this.personEvents,
-      });
+      this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_preview_init_failed', err.message)));
     }
   }
 
@@ -353,14 +489,7 @@ export class CameraStreamManager {
         console.info(`${TAG} startStream: RTMP mode, connecting to server...`);
         if (!this.rtmpConfig) {
           console.error(`${TAG} startStream: RTMP config not set`);
-          this.statusCallback?.({
-            isStreaming: false,
-            isPreviewReady: this.previewReady,
-            statusText: rstr(this.context, 'cam_status_configure_rtmp'),
-            clientCount: 0,
-            personDetected: false,
-            personEvents: this.personEvents,
-          });
+          this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_configure_rtmp')));
           return;
         }
         this.rtmpPushManager = new RtmpPushManager(this.context);
@@ -437,14 +566,7 @@ export class CameraStreamManager {
     } catch (e) {
       const err = e as Error;
       console.error(`${TAG} startStream EXCEPTION: ${err.message}, stack=${err.stack}`);
-      this.statusCallback?.({
-        isStreaming: false,
-        isPreviewReady: this.previewReady,
-        statusText: rstr(this.context, 'cam_status_start_failed', err.message),
-        clientCount: 0,
-        personDetected: false,
-        personEvents: this.personEvents,
-      });
+      this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_start_failed', err.message)));
     }
   }
 

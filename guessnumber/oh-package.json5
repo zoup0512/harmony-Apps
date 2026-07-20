@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.1.0",
+  "name": "guessnumber",
+  "version": "1.0.0",
+  "description": "Guess Number (1A2B) game entry module",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

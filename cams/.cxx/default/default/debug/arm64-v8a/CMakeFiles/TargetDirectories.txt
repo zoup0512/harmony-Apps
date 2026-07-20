@@ -1,3 +1,3 @@
-C:/Users/24790/DevEcoStudioProjects/github/harmony-Apps/cams/.cxx/default/default/debug/arm64-v8a/CMakeFiles/rtspencoder.dir
-C:/Users/24790/DevEcoStudioProjects/github/harmony-Apps/cams/.cxx/default/default/debug/arm64-v8a/CMakeFiles/edit_cache.dir
-C:/Users/24790/DevEcoStudioProjects/github/harmony-Apps/cams/.cxx/default/default/debug/arm64-v8a/CMakeFiles/rebuild_cache.dir
+D:/workspace/My/harmony/harmony-Apps/cams/.cxx/default/default/debug/arm64-v8a/CMakeFiles/rtspencoder.dir
+D:/workspace/My/harmony/harmony-Apps/cams/.cxx/default/default/debug/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/workspace/My/harmony/harmony-Apps/cams/.cxx/default/default/debug/arm64-v8a/CMakeFiles/rebuild_cache.dir

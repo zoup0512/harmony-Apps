@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "GoWeb module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "GoWeb entry ability"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "GoWeb"
+    },
+    {
+      "name": "reason_internet",
+      "value": "Access the internet to load web pages"
+    },
+    {
+      "name": "reason_download",
+      "value": "Save downloaded files to device storage"
+    }
+  ]
+}

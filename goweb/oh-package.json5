@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.1.0",
+  "name": "goweb",
+  "version": "1.0.0",
+  "description": "GoWeb entry module",
+  "main": "",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

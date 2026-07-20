@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "GRSAI AI image generation" },
+    { "name": "ability_desc", "value": "AI image generation main ability" },
+    { "name": "app_label", "value": "灵绘 AGI" }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.1.0",
+  "name": "grsaiagi",
+  "version": "1.0.0",
+  "description": "GRSAI AI image generation entry module",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}

@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "数字解密游戏主模块" },
+    { "name": "ability_desc", "value": "数字解密（1A2B 猜数字）游戏" },
+    { "name": "ability_label", "value": "数字解密" }
+  ]
+}

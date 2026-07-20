@@ -106,6 +106,42 @@
       ]
     },
     {
+      "name": "guessnumber",
+      "srcPath": "./guessnumber",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "grsaiagi",
+      "srcPath": "./grsaiagi",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "goweb",
+      "srcPath": "./goweb",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
       "name": "fastfurious",
       "srcPath": "./fastfurious",
       "targets": [

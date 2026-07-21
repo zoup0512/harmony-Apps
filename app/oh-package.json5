@@ -1,0 +1,23 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Main entry module - app launcher list",
+  "main": "",
+  "author": "razor",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "cams": "file:../cams",
+    "guessnumber": "file:../guessnumber",
+    "goweb": "file:../goweb",
+    "fastfurious": "file:../fastfurious",
+    "grsaiagi": "file:../grsaiagi",
+    "kart": "file:../kart",
+    "memorygame": "file:../memorygame",
+    "webvideocast": "file:../webvideocast",
+    "cameraviewer": "file:../cameraviewer",
+    "cammonitor": "file:../cammonitor",
+    "infuse": "file:../infuse",
+    "ipwebcam": "file:../ipwebcam",
+    "streamshow": "file:../streamshow"
+  }
+}

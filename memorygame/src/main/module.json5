@@ -1,7 +1,7 @@
 {
   "module": {
     "name": "memorygame",
-    "type": "entry",
+    "type": "feature",
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
@@ -19,17 +19,7 @@
         "label": "$string:EntryAbility_label",
         "startWindowIcon": "$media:layered_image",
         "startWindowBackground": "$color:start_window_background",
-        "exported": true,
-        "skills": [
-          {
-            "entities": [
-              "entity.system.home"
-            ],
-            "actions": [
-              "action.system.home"
-            ]
-          }
-        ]
+        "exported": true
       }
     ]
   }

@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "module_desc", "value": "应用合集主模块" },
+    { "name": "ability_desc", "value": "HarmonyApps 应用合集入口" },
+    { "name": "ability_label", "value": "HarmonyApps" }
+  ]
+}

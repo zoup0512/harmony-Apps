@@ -5,104 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\24790\\.ohos\\config\\default_harmony-Apps_VoUVgCwhzYcjzXjZKI69AawUCZda6m51ycy95lrH4ig=.cer",
+          "certpath": "C:\\Users\\vyron\\.ohos\\config\\default_harmony-Apps_kBZRMsFvTAAMwXV27aYzV1RGAKJWyxvSAcILcO83tX4=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001A4A997C57C389734DD46AE120F8FE44C7BFCFBB5E26B7F121E3575906741F98ACDDF13894DF47",
-          "profile": "C:\\Users\\24790\\.ohos\\config\\default_harmony-Apps_VoUVgCwhzYcjzXjZKI69AawUCZda6m51ycy95lrH4ig=.p7b",
+          "keyPassword": "0000001B678C5B8153BA000EE48752B083DEDC4B663F8AB2FB804C1602084C7AE0C0779B8F55399D8EF2BD",
+          "profile": "C:\\Users\\vyron\\.ohos\\config\\default_harmony-Apps_kBZRMsFvTAAMwXV27aYzV1RGAKJWyxvSAcILcO83tX4=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\24790\\.ohos\\config\\default_harmony-Apps_VoUVgCwhzYcjzXjZKI69AawUCZda6m51ycy95lrH4ig=.p12",
-          "storePassword": "0000001A93F093B4AEFB9630FAFBE1368A3F9D6D479F4CD49086F173E419BB70567AE95F397C2006C089"
-        }
-      },
-      {
-        "name": "cams_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./cams/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B00375F562757A4CA7B3FBC4E2F5CA2C025180D14EEE5E2F29CA4E01ADF0B4445F6D7A013826902",
-          "profile": "./cams/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./cams/sign/debug/debug.p12",
-          "storePassword": "0000001B5A99BD948F8571EBF136A29FABB4EA49C417A74B5EA14CF1340299B529C9A3CCFA97B065321E4B"
-        }
-      },
-      {
-        "name": "webvideocast_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./webvideocast/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B000000",
-          "profile": "./webvideocast/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./webvideocast/sign/debug/debug.p12",
-          "storePassword": "0000001B000000"
-        }
-      },
-      {
-        "name": "cammonitor_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./cammonitor/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B000000",
-          "profile": "./cammonitor/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./cammonitor/sign/debug/debug.p12",
-          "storePassword": "0000001B000000"
-        }
-      },
-      {
-        "name": "ipwebcam_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./ipwebcam/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B000000",
-          "profile": "./ipwebcam/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./ipwebcam/sign/debug/debug.p12",
-          "storePassword": "0000001B000000"
-        }
-      },
-      {
-        "name": "infuse_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./infuse/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B000000",
-          "profile": "./infuse/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./infuse/sign/debug/debug.p12",
-          "storePassword": "0000001B000000"
-        }
-      },
-      {
-        "name": "streamshow_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./streamshow/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B000000",
-          "profile": "./streamshow/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./streamshow/sign/debug/debug.p12",
-          "storePassword": "0000001B000000"
-        }
-      },
-      {
-        "name": "cameraviewer_signing",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "./cameraviewer/sign/debug/debug.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B000000",
-          "profile": "./cameraviewer/sign/debug/debug.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "./cameraviewer/sign/debug/debug.p12",
-          "storePassword": "0000001B000000"
+          "storeFile": "C:\\Users\\vyron\\.ohos\\config\\default_harmony-Apps_kBZRMsFvTAAMwXV27aYzV1RGAKJWyxvSAcILcO83tX4=.p12",
+          "storePassword": "0000001BAEF82388AAF3B422AA0A65FB981B70E3C8CB01224F43D7A73FE8DB42745F3E27F96F785E3F417D"
         }
       }
     ],
@@ -110,104 +19,6 @@
       {
         "name": "default",
         "signingConfig": "default",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "cams",
-        "signingConfig": "cams_signing",
-        "bundleName": "com.razor.apps.cams",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "webvideocast",
-        "signingConfig": "webvideocast_signing",
-        "bundleName": "com.razor.apps.webvideocast",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "cammonitor",
-        "signingConfig": "cammonitor_signing",
-        "bundleName": "com.razor.apps.cammonitor",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "ipwebcam",
-        "signingConfig": "ipwebcam_signing",
-        "bundleName": "com.razor.apps.ipwebcam",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "infuse",
-        "signingConfig": "infuse_signing",
-        "bundleName": "com.razor.apps.infuse",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "streamshow",
-        "signingConfig": "streamshow_signing",
-        "bundleName": "com.razor.apps.streamshow",
-        "compatibleSdkVersion": "6.0.2(22)",
-        "targetSdkVersion": "6.0.2(22)",
-        "runtimeOS": "HarmonyOS",
-        "buildOption": {
-          "strictMode": {
-            "caseSensitiveCheck": true,
-            "useNormalizedOHMUrl": true
-          }
-        }
-      },
-      {
-        "name": "cameraviewer",
-        "signingConfig": "cameraviewer_signing",
-        "bundleName": "com.razor.apps.cameraviewer",
         "compatibleSdkVersion": "6.0.2(22)",
         "targetSdkVersion": "6.0.2(22)",
         "runtimeOS": "HarmonyOS",
@@ -230,21 +41,8 @@
   },
   "modules": [
     {
-      "name": "cams",
-      "srcPath": "./cams",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": [
-            "default",
-            "cams"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "guessnumber",
-      "srcPath": "./guessnumber",
+      "name": "app",
+      "srcPath": "./app",
       "targets": [
         {
           "name": "default",
@@ -255,8 +53,20 @@
       ]
     },
     {
-      "name": "grsaiagi",
-      "srcPath": "./grsaiagi",
+      "name": "cams",
+      "srcPath": "./cams",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "guessnumber",
+      "srcPath": "./guessnumber",
       "targets": [
         {
           "name": "default",
@@ -291,6 +101,18 @@
       ]
     },
     {
+      "name": "grsaiagi",
+      "srcPath": "./grsaiagi",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
       "name": "kart",
       "srcPath": "./kart",
       "targets": [
@@ -315,78 +137,13 @@
       ]
     },
     {
-      "name": "libwlmedia",
-      "srcPath": "./libwlmedia",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": [
-            "default"
-          ]
-        }
-      ]
-    },
-    {
       "name": "webvideocast",
       "srcPath": "./webvideocast",
       "targets": [
         {
           "name": "default",
           "applyToProducts": [
-            "default",
-            "webvideocast"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "cammonitor",
-      "srcPath": "./cammonitor",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": [
-            "default",
-            "cammonitor"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "ipwebcam",
-      "srcPath": "./ipwebcam",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": [
-            "default",
-            "ipwebcam"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "infuse",
-      "srcPath": "./infuse",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": [
-            "default",
-            "infuse"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "streamshow",
-      "srcPath": "./streamshow",
-      "targets": [
-        {
-          "name": "default",
-          "applyToProducts": [
-            "default",
-            "streamshow"
+            "default"
           ]
         }
       ]
@@ -398,8 +155,67 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default",
-            "cameraviewer"
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cammonitor",
+      "srcPath": "./cammonitor",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "infuse",
+      "srcPath": "./infuse",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ipwebcam",
+      "srcPath": "./ipwebcam",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "streamshow",
+      "srcPath": "./streamshow",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "libwlmedia",
+      "srcPath": "./libwlmedia",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
           ]
         }
       ]

@@ -1,7 +1,7 @@
 {
   "module": {
     "name": "cams",
-    "type": "entry",
+    "type": "feature",
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": ["phone", "tablet"],
@@ -17,13 +17,7 @@
         "label": "$string:ability_label",
         "startWindowIcon": "$media:app_icon",
         "startWindowBackground": "$color:start_window_background",
-        "exported": true,
-        "skills": [
-          {
-            "entities": ["entity.system.home"],
-            "actions": ["action.system.home"]
-          }
-        ]
+        "exported": true
       }
     ],
     "requestPermissions": [

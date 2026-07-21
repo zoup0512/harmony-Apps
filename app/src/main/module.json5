@@ -1,10 +1,10 @@
 {
   "module": {
-    "name": "cameraviewer",
-    "type": "feature",
+    "name": "app",
+    "type": "entry",
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
-    "deviceTypes": ["phone", "tablet", "2in1"],
+    "deviceTypes": ["phone", "tablet"],
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
@@ -13,18 +13,18 @@
         "name": "EntryAbility",
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:ability_desc",
-        "icon": "$media:startIcon",
-        "label": "$string:EntryAbility_label",
-        "startWindowIcon": "$media:startIcon",
+        "icon": "$media:app_icon",
+        "label": "$string:ability_label",
+        "startWindowIcon": "$media:app_icon",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
-        "orientation": "auto_rotation_restricted"
+        "skills": [
+          {
+            "entities": ["entity.system.home"],
+            "actions": ["action.system.home"]
+          }
+        ]
       }
-    ],
-    "requestPermissions": [
-      { "name": "ohos.permission.INTERNET" },
-      { "name": "ohos.permission.GET_NETWORK_INFO" },
-      { "name": "ohos.permission.GET_WIFI_INFO" }
     ]
   }
 }

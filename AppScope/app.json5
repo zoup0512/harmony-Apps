@@ -1,6 +1,6 @@
 {
   "app": {
-    "bundleName": "com.razor.apps",
+    "bundleName": "com.razor.app",
     "vendor": "razor",
     "versionCode": 1000000,
     "versionName": "1.0.0",

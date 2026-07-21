@@ -1,7 +1,7 @@
 {
   "module": {
     "name": "kart",
-    "type": "entry",
+    "type": "feature",
     "description": "$string:module_desc",
     "mainElement": "EntryAbility",
     "deviceTypes": [
@@ -21,17 +21,7 @@
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
-        "orientation": "landscape",
-        "skills": [
-          {
-            "entities": [
-              "entity.system.home"
-            ],
-            "actions": [
-              "action.system.home"
-            ]
-          }
-        ]
+        "orientation": "landscape"
       }
     ]
   }

@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "Infuse Player" },
+    { "name": "module_desc", "value": "Infuse player entry module" },
+    { "name": "ability_desc", "value": "Beautiful video playback for local and network media" }
+  ]
+}

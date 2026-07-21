@@ -2,6 +2,45 @@ import { RecordingFile, readableFileSize } from '../model/RecordingFile';
 import { buildPhoneRtspAddress } from '../utils/NetworkUtils';
 import { CameraStreamManager, StreamStatus, PersonEventLog } from '../utils/CameraStreamManager';
 import { common } from '@kit.AbilityKit';
+import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
+import { promptAction } from '@kit.ArkUI';
+import { PrefStore } from '../utils/PrefStore';
+
+function showToast(message: string): void {
+  try {
+    promptAction.openToast({ message });
+  } catch (e) {
+    console.error(`showToast failed: ${(e as Error).message}`);
+  }
+}
+
+interface ResolutionOption {
+  key: string;
+  labelKey: string;
+  width: number;
+  height: number;
+  baseBitrate: number;
+}
+
+interface QualityOption {
+  key: string;
+  labelKey: string;
+  multiplier: number;
+}
+
+const RESOLUTION_OPTIONS: ResolutionOption[] = [
+  { key: '480p', labelKey: 'ipcam_resolution_480p', width: 640, height: 480, baseBitrate: 1_200_000 },
+  { key: '720p', labelKey: 'ipcam_resolution_720p', width: 1280, height: 720, baseBitrate: 2_500_000 },
+  { key: '1080p', labelKey: 'ipcam_resolution_1080p', width: 1920, height: 1080, baseBitrate: 4_500_000 },
+];
+
+const QUALITY_OPTIONS: QualityOption[] = [
+  { key: 'low', labelKey: 'ipcam_quality_low', multiplier: 0.6 },
+  { key: 'balanced', labelKey: 'ipcam_quality_balanced', multiplier: 1.0 },
+  { key: 'high', labelKey: 'ipcam_quality_high', multiplier: 1.6 },
+];
+
+const FPS_OPTIONS: number[] = [15, 24, 30];
 
 interface ThemeOptionItem {
   value: string;
@@ -68,6 +107,17 @@ export struct ActivityStreamScreen {
   @State personDetected: boolean = false;
   @State personEvents: PersonEventLog[] = [];
   @StorageLink('isAppForeground') @Watch('onAppForegroundChange') isAppForeground: boolean = true;
+  @State torchSupported: boolean = false;
+  @State torchOn: boolean = false;
+  @State zoomRange: number[] = [1, 1];
+  @State zoomRatio: number = 1;
+  @State resolutionKey: string = '480p';
+  @State qualityKey: string = 'balanced';
+  @State fpsValue: number = 30;
+  @State elapsedText: string = '00:00:00';
+  private streamStartedAtMs: number = 0;
+  private elapsedTimerId: number = -1;
+  private prefStore: PrefStore | null = null;
   private streamManager: CameraStreamManager | null = null;
   private xComponentController: XComponentController = new XComponentController();
   private previewSurfaceId: string = '';
@@ -96,14 +146,192 @@ export struct ActivityStreamScreen {
       this.clientCount = status.clientCount;
       this.personDetected = status.personDetected;
       this.personEvents = status.personEvents;
+      this.torchSupported = status.torchSupported;
+      if (status.zoomMax > status.zoomMin) {
+        this.zoomRange = [status.zoomMin, status.zoomMax];
+      }
+      if (status.isStreaming && this.streamStartedAtMs === 0) {
+        this.streamStartedAtMs = Date.now();
+        this.startElapsedTimer();
+      } else if (!status.isStreaming && this.streamStartedAtMs !== 0) {
+        this.streamStartedAtMs = 0;
+        this.elapsedText = '00:00:00';
+        this.stopElapsedTimer();
+      }
+    });
+    this.prefStore = new PrefStore(context);
+    this.loadSavedSettings().catch((e: Error) => {
+      console.error(`ActivityStreamScreen loadSavedSettings failed: ${e.message}`);
     });
     console.info(`ActivityStreamScreen aboutToAppear: isAppForeground=${this.isAppForeground}`);
   }
 
   aboutToDisappear(): void {
+    this.stopElapsedTimer();
     if (this.streamManager) {
       this.streamManager.release();
       this.streamManager = null;
+    }
+  }
+
+  private startElapsedTimer(): void {
+    this.stopElapsedTimer();
+    this.updateElapsedText();
+    this.elapsedTimerId = setInterval(() => {
+      this.updateElapsedText();
+    }, 1000);
+  }
+
+  private stopElapsedTimer(): void {
+    if (this.elapsedTimerId !== -1) {
+      clearInterval(this.elapsedTimerId);
+      this.elapsedTimerId = -1;
+    }
+  }
+
+  private updateElapsedText(): void {
+    if (this.streamStartedAtMs === 0) {
+      this.elapsedText = '00:00:00';
+      return;
+    }
+    const totalSec = Math.max(0, Math.floor((Date.now() - this.streamStartedAtMs) / 1000));
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    this.elapsedText = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  private findResolution(key: string): ResolutionOption {
+    return RESOLUTION_OPTIONS.find((r: ResolutionOption) => r.key === key) ?? RESOLUTION_OPTIONS[0];
+  }
+
+  private findQuality(key: string): QualityOption {
+    return QUALITY_OPTIONS.find((q: QualityOption) => q.key === key) ?? QUALITY_OPTIONS[1];
+  }
+
+  private computeBitrate(): number {
+    const res = this.findResolution(this.resolutionKey);
+    const q = this.findQuality(this.qualityKey);
+    return Math.round(res.baseBitrate * q.multiplier);
+  }
+
+  private currentOutputText(): string {
+    const res = this.findResolution(this.resolutionKey);
+    return `${res.width}\u00d7${res.height} \u00b7 ${this.fpsValue}fps`;
+  }
+
+  private connectHintText(): string {
+    return this.selectedStreamTool === 'rtmp'
+      ? getContext(this).resourceManager.getStringByNameSync('ipcam_how_to_connect_rtmp_hint')
+      : getContext(this).resourceManager.getStringByNameSync('ipcam_how_to_connect_rtsp_hint');
+  }
+
+  private async loadSavedSettings(): Promise<void> {
+    if (!this.prefStore) return;
+    const savedMode = await this.prefStore.getString('ipcam_stream_mode', 'rtsp');
+    const savedResolution = await this.prefStore.getString('ipcam_resolution', '480p');
+    const savedQuality = await this.prefStore.getString('ipcam_quality', 'balanced');
+    const savedFps = await this.prefStore.getNumber('ipcam_fps', 30);
+    const savedPersonDetection = await this.prefStore.getBoolean('ipcam_person_detection', false);
+
+    this.selectedStreamTool = savedMode === 'rtmp' ? 'rtmp' : 'rtsp';
+    this.resolutionKey = this.findResolution(savedResolution).key;
+    this.qualityKey = this.findQuality(savedQuality).key;
+    this.fpsValue = FPS_OPTIONS.includes(savedFps) ? savedFps : 30;
+
+    const manager = this.streamManager;
+    if (!manager) return;
+    manager.setStreamMode(this.selectedStreamTool === 'rtmp' ? 'rtmp' : 'rtsp');
+    if (this.selectedStreamTool === 'rtmp') {
+      manager.setRtmpConfig(this.rtmpUrlInput, this.rtmpStreamKeyInput, this.rtmpUsernameInput, this.rtmpPasswordInput);
+    }
+    const res = this.findResolution(this.resolutionKey);
+    const applied = manager.setVideoConfig(res.width, res.height, this.computeBitrate(), this.fpsValue);
+    if (applied && manager.isPreviewReady() && !this.isStreaming) {
+      await manager.restartPreview();
+      this.torchSupported = manager.hasTorchSupport();
+      this.torchOn = manager.isTorchOn();
+      this.zoomRange = manager.getZoomRange();
+      this.zoomRatio = manager.getZoomRatio();
+    }
+    if (savedPersonDetection) {
+      this.personDetectionEnabled = true;
+      manager.setPersonDetectionEnabled(true);
+    }
+  }
+
+  private applyVideoConfig(): void {
+    const manager = this.streamManager;
+    this.prefStore?.putString('ipcam_resolution', this.resolutionKey);
+    this.prefStore?.putString('ipcam_quality', this.qualityKey);
+    this.prefStore?.putNumber('ipcam_fps', this.fpsValue);
+    if (!manager) return;
+    const res = this.findResolution(this.resolutionKey);
+    const bitrate = this.computeBitrate();
+    const applied = manager.setVideoConfig(res.width, res.height, bitrate, this.fpsValue);
+    if (applied && manager.isPreviewReady() && !this.isStreaming) {
+      manager.restartPreview().then(() => {
+        this.torchSupported = manager.hasTorchSupport();
+        this.torchOn = manager.isTorchOn();
+        this.zoomRange = manager.getZoomRange();
+        this.zoomRatio = manager.getZoomRatio();
+      }).catch((e: Error) => {
+        console.error(`ActivityStreamScreen applyVideoConfig: restartPreview failed: ${e.message}`);
+      });
+    }
+  }
+
+  private onSelectResolution(key: string): void {
+    if (this.isStreaming || this.resolutionKey === key) return;
+    this.resolutionKey = key;
+    this.applyVideoConfig();
+  }
+
+  private onSelectQuality(key: string): void {
+    if (this.isStreaming || this.qualityKey === key) return;
+    this.qualityKey = key;
+    this.applyVideoConfig();
+  }
+
+  private onSelectFps(fps: number): void {
+    if (this.isStreaming || this.fpsValue === fps) return;
+    this.fpsValue = fps;
+    this.applyVideoConfig();
+  }
+
+  private onToggleTorch(on: boolean): void {
+    const manager = this.streamManager;
+    if (!manager || !this.torchSupported) return;
+    manager.setTorch(on).then((ok: boolean) => {
+      this.torchOn = ok ? on : manager.isTorchOn();
+    }).catch((e: Error) => {
+      console.error(`ActivityStreamScreen onToggleTorch failed: ${e.message}`);
+    });
+  }
+
+  private onZoomChange(value: number): void {
+    this.zoomRatio = value;
+    const manager = this.streamManager;
+    if (!manager) return;
+    manager.setZoomRatio(value).then((applied: number) => {
+      this.zoomRatio = applied;
+    }).catch((e: Error) => {
+      console.error(`ActivityStreamScreen onZoomChange failed: ${e.message}`);
+    });
+  }
+
+  private copyAddressToClipboard(): void {
+    const text = this.selectedStreamTool === 'rtmp' ? this.buildRtmpUrl() : this.rtspAddress;
+    try {
+      const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, text);
+      pasteboard.getSystemPasteboard().setData(pasteData).then(() => {
+        showToast(getContext(this).resourceManager.getStringByNameSync('toast_address_copied'));
+      }).catch((e: BusinessError) => {
+        console.error(`ActivityStreamScreen copyAddressToClipboard failed: ${e.message}`);
+        showToast(getContext(this).resourceManager.getStringByNameSync('toast_copy_failed'));
+      });
+    } catch (e) {
+      console.error(`ActivityStreamScreen copyAddressToClipboard exception: ${(e as Error).message}`);
     }
   }
 
@@ -143,6 +371,54 @@ export struct ActivityStreamScreen {
     return getContext(this).resourceManager.getStringByNameSync('activity_log_count').replace('%d', String(this.recordings.length));
   }
 
+  @Builder
+  ResolutionChip(opt: ResolutionOption) {
+    Text(getContext(this).resourceManager.getStringByNameSync(opt.labelKey))
+      .fontSize(13)
+      .fontColor(this.resolutionKey === opt.key ? this.onPrimaryColor : this.onSurfaceColor)
+      .fontWeight(this.resolutionKey === opt.key ? FontWeight.Medium : FontWeight.Normal)
+      .layoutWeight(1)
+      .textAlign(TextAlign.Center)
+      .padding({ top: 9, bottom: 9 })
+      .backgroundColor(this.resolutionKey === opt.key ? this.accentColor : this.surfaceVariantColor)
+      .borderRadius(10)
+      .opacity(this.isStreaming ? 0.5 : 1)
+      .enabled(!this.isStreaming)
+      .onClick(() => this.onSelectResolution(opt.key))
+  }
+
+  @Builder
+  QualityChip(opt: QualityOption) {
+    Text(getContext(this).resourceManager.getStringByNameSync(opt.labelKey))
+      .fontSize(13)
+      .fontColor(this.qualityKey === opt.key ? this.onPrimaryColor : this.onSurfaceColor)
+      .fontWeight(this.qualityKey === opt.key ? FontWeight.Medium : FontWeight.Normal)
+      .layoutWeight(1)
+      .textAlign(TextAlign.Center)
+      .padding({ top: 9, bottom: 9 })
+      .backgroundColor(this.qualityKey === opt.key ? this.accentColor : this.surfaceVariantColor)
+      .borderRadius(10)
+      .opacity(this.isStreaming ? 0.5 : 1)
+      .enabled(!this.isStreaming)
+      .onClick(() => this.onSelectQuality(opt.key))
+  }
+
+  @Builder
+  FpsChip(fps: number) {
+    Text(`${fps} fps`)
+      .fontSize(13)
+      .fontColor(this.fpsValue === fps ? this.onPrimaryColor : this.onSurfaceColor)
+      .fontWeight(this.fpsValue === fps ? FontWeight.Medium : FontWeight.Normal)
+      .layoutWeight(1)
+      .textAlign(TextAlign.Center)
+      .padding({ top: 9, bottom: 9 })
+      .backgroundColor(this.fpsValue === fps ? this.accentColor : this.surfaceVariantColor)
+      .borderRadius(10)
+      .opacity(this.isStreaming ? 0.5 : 1)
+      .enabled(!this.isStreaming)
+      .onClick(() => this.onSelectFps(fps))
+  }
+
   build(): void {
     Column() {
         Text($r('app.string.stream_mode_label'))
@@ -162,10 +438,10 @@ export struct ActivityStreamScreen {
               .backgroundColor(this.selectedStreamTool === 'rtsp' ? this.accentColor : Color.Transparent)
               .borderRadius(10)
               .onClick(() => {
+                if (this.isStreaming) return;
                 this.selectedStreamTool = 'rtsp';
-                if (this.streamManager) {
-                  this.streamManager.setStreamMode('rtsp');
-                }
+                this.streamManager?.setStreamMode('rtsp');
+                this.prefStore?.putString('ipcam_stream_mode', 'rtsp');
               })
 
             Text($r('app.string.rtmp_stream'))
@@ -178,6 +454,7 @@ export struct ActivityStreamScreen {
               .backgroundColor(this.selectedStreamTool === 'rtmp' ? this.accentColor : Color.Transparent)
               .borderRadius(10)
               .onClick(() => {
+                if (this.isStreaming) return;
                 this.selectedStreamTool = 'rtmp';
                 if (this.streamManager) {
                   this.streamManager.setStreamMode('rtmp');
@@ -188,6 +465,7 @@ export struct ActivityStreamScreen {
                     this.rtmpPasswordInput,
                   );
                 }
+                this.prefStore?.putString('ipcam_stream_mode', 'rtmp');
               })
           }
           .width('100%')
@@ -250,6 +528,10 @@ export struct ActivityStreamScreen {
                   if (this.streamManager && this.previewSurfaceId) {
                     this.streamManager.initPreview(this.previewSurfaceId).then(() => {
                       console.info(`ActivityStreamScreen XComponent.onLoad: initPreview completed`);
+                      this.torchSupported = this.streamManager?.hasTorchSupport() ?? false;
+                      this.torchOn = this.streamManager?.isTorchOn() ?? false;
+                      this.zoomRange = this.streamManager?.getZoomRange() ?? [1, 1];
+                      this.zoomRatio = this.streamManager?.getZoomRatio() ?? 1;
                     }).catch((e: Error) => {
                       console.error(`ActivityStreamScreen XComponent.onLoad: initPreview failed: ${e.message}`);
                     });
@@ -288,6 +570,12 @@ export struct ActivityStreamScreen {
             .margin({ top: 12 })
             .clip(true)
 
+            Text(this.currentOutputText())
+              .fontSize(11)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 8 })
+              .width('100%')
+
             Row({ space: 6 }) {
               SymbolGlyph($r('sys.symbol.link'))
                 .fontSize(14)
@@ -298,9 +586,64 @@ export struct ActivityStreamScreen {
                 .layoutWeight(1)
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
+              SymbolGlyph($r('sys.symbol.square_on_square_fill'))
+                .fontSize(14)
+                .fontColor([this.accentColor])
+                .onClick(() => this.copyAddressToClipboard())
             }
             .width('100%')
-            .margin({ top: 12 })
+            .margin({ top: 6 })
+
+            if (this.isStreaming) {
+              Row({ space: 6 }) {
+                Text($r('app.string.ipcam_uptime'))
+                  .fontSize(12)
+                  .fontColor(this.onSurfaceVariantColor)
+                Text(this.elapsedText)
+                  .fontSize(12)
+                  .fontColor(this.onSurfaceColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+              .width('100%')
+              .margin({ top: 6 })
+            }
+
+            Text(this.connectHintText())
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 6 })
+              .width('100%')
+
+            if (this.torchSupported || this.zoomRange[1] > this.zoomRange[0]) {
+              Row({ space: 16 }) {
+                if (this.torchSupported) {
+                  Row({ space: 6 }) {
+                    Text($r('app.string.ipcam_torch'))
+                      .fontSize(13)
+                      .fontColor(this.onSurfaceVariantColor)
+                    Toggle({ type: ToggleType.Switch, isOn: this.torchOn })
+                      .onChange((on: boolean) => this.onToggleTorch(on))
+                  }
+                }
+                if (this.zoomRange[1] > this.zoomRange[0]) {
+                  Row({ space: 8 }) {
+                    Text($r('app.string.ipcam_zoom'))
+                      .fontSize(13)
+                      .fontColor(this.onSurfaceVariantColor)
+                    Slider({ value: this.zoomRatio, min: this.zoomRange[0], max: this.zoomRange[1], step: 0.1 })
+                      .layoutWeight(1)
+                      .selectedColor(this.accentColor)
+                      .onChange((value: number) => this.onZoomChange(value))
+                    Text(`${this.zoomRatio.toFixed(1)}x`)
+                      .fontSize(12)
+                      .fontColor(this.onSurfaceVariantColor)
+                  }
+                  .layoutWeight(1)
+                }
+              }
+              .width('100%')
+              .margin({ top: 12 })
+            }
 
             if (this.selectedStreamTool === 'rtsp') {
               Column() {
@@ -340,6 +683,10 @@ export struct ActivityStreamScreen {
                       const mgrFront = this.streamManager!.isFrontCamera();
                       console.info(`ActivityStreamScreen switchCamera then: mgr_useFrontCamera=${mgrFront}, old ui_useFrontCamera=${this.useFrontCamera}`);
                       this.useFrontCamera = mgrFront;
+                      this.torchSupported = this.streamManager!.hasTorchSupport();
+                      this.torchOn = this.streamManager!.isTorchOn();
+                      this.zoomRange = this.streamManager!.getZoomRange();
+                      this.zoomRatio = this.streamManager!.getZoomRatio();
                       console.info(`ActivityStreamScreen switchCamera then: AFTER ui_useFrontCamera=${this.useFrontCamera}`);
                     }).catch((e: Error) => {
                       console.error(`ActivityStreamScreen switchCamera failed: ${e.message}`);
@@ -385,6 +732,68 @@ export struct ActivityStreamScreen {
 
           Column() {
             Row() {
+              Text($r('app.string.ipcam_video_settings'))
+                .fontSize(16)
+                .fontColor(this.onSurfaceColor)
+                .fontWeight(FontWeight.Bold)
+                .layoutWeight(1)
+
+              if (this.isStreaming) {
+                Text($r('app.string.ipcam_settings_locked_hint'))
+                  .fontSize(11)
+                  .fontColor(this.onSurfaceVariantColor)
+              }
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Center)
+
+            Text($r('app.string.ipcam_resolution'))
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 14 })
+              .width('100%')
+            Row({ space: 8 }) {
+              ForEach(RESOLUTION_OPTIONS, (opt: ResolutionOption) => {
+                this.ResolutionChip(opt)
+              }, (opt: ResolutionOption) => opt.key)
+            }
+            .width('100%')
+            .margin({ top: 6 })
+
+            Text($r('app.string.ipcam_quality'))
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 14 })
+              .width('100%')
+            Row({ space: 8 }) {
+              ForEach(QUALITY_OPTIONS, (opt: QualityOption) => {
+                this.QualityChip(opt)
+              }, (opt: QualityOption) => opt.key)
+            }
+            .width('100%')
+            .margin({ top: 6 })
+
+            Text($r('app.string.ipcam_framerate'))
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 14 })
+              .width('100%')
+            Row({ space: 8 }) {
+              ForEach(FPS_OPTIONS, (fps: number) => {
+                this.FpsChip(fps)
+              }, (fps: number) => fps.toString())
+            }
+            .width('100%')
+            .margin({ top: 6 })
+          }
+          .width('100%')
+          .borderRadius(20)
+          .backgroundColor(this.surfaceColor)
+          .padding(16)
+          .margin({ top: 14 })
+
+          Column() {
+            Row() {
               Text($r('app.string.person_detection'))
                 .fontSize(16)
                 .fontColor(this.onSurfaceColor)
@@ -395,6 +804,7 @@ export struct ActivityStreamScreen {
                 .onChange((on: boolean) => {
                   this.personDetectionEnabled = on;
                   this.streamManager?.setPersonDetectionEnabled(on);
+                  this.prefStore?.putBoolean('ipcam_person_detection', on);
                 })
             }
             .width('100%')

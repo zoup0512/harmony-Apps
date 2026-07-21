@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "Cam Monitor" },
+    { "name": "module_desc", "value": "Cam Monitor entry module" },
+    { "name": "ability_desc", "value": "Watch all your IP cameras in one place" }
+  ]
+}

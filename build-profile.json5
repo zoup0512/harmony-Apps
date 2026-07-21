@@ -39,6 +39,71 @@
           "storeFile": "./webvideocast/sign/debug/debug.p12",
           "storePassword": "0000001B000000"
         }
+      },
+      {
+        "name": "cammonitor_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./cammonitor/sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B000000",
+          "profile": "./cammonitor/sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./cammonitor/sign/debug/debug.p12",
+          "storePassword": "0000001B000000"
+        }
+      },
+      {
+        "name": "ipwebcam_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./ipwebcam/sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B000000",
+          "profile": "./ipwebcam/sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./ipwebcam/sign/debug/debug.p12",
+          "storePassword": "0000001B000000"
+        }
+      },
+      {
+        "name": "infuse_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./infuse/sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B000000",
+          "profile": "./infuse/sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./infuse/sign/debug/debug.p12",
+          "storePassword": "0000001B000000"
+        }
+      },
+      {
+        "name": "streamshow_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./streamshow/sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B000000",
+          "profile": "./streamshow/sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./streamshow/sign/debug/debug.p12",
+          "storePassword": "0000001B000000"
+        }
+      },
+      {
+        "name": "cameraviewer_signing",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "./cameraviewer/sign/debug/debug.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B000000",
+          "profile": "./cameraviewer/sign/debug/debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "./cameraviewer/sign/debug/debug.p12",
+          "storePassword": "0000001B000000"
+        }
       }
     ],
     "products": [
@@ -58,6 +123,7 @@
       {
         "name": "cams",
         "signingConfig": "cams_signing",
+        "bundleName": "com.razor.apps.cams",
         "compatibleSdkVersion": "6.0.2(22)",
         "targetSdkVersion": "6.0.2(22)",
         "runtimeOS": "HarmonyOS",
@@ -71,6 +137,77 @@
       {
         "name": "webvideocast",
         "signingConfig": "webvideocast_signing",
+        "bundleName": "com.razor.apps.webvideocast",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "cammonitor",
+        "signingConfig": "cammonitor_signing",
+        "bundleName": "com.razor.apps.cammonitor",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "ipwebcam",
+        "signingConfig": "ipwebcam_signing",
+        "bundleName": "com.razor.apps.ipwebcam",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "infuse",
+        "signingConfig": "infuse_signing",
+        "bundleName": "com.razor.apps.infuse",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "streamshow",
+        "signingConfig": "streamshow_signing",
+        "bundleName": "com.razor.apps.streamshow",
+        "compatibleSdkVersion": "6.0.2(22)",
+        "targetSdkVersion": "6.0.2(22)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "cameraviewer",
+        "signingConfig": "cameraviewer_signing",
+        "bundleName": "com.razor.apps.cameraviewer",
         "compatibleSdkVersion": "6.0.2(22)",
         "targetSdkVersion": "6.0.2(22)",
         "runtimeOS": "HarmonyOS",
@@ -198,6 +335,71 @@
           "applyToProducts": [
             "default",
             "webvideocast"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cammonitor",
+      "srcPath": "./cammonitor",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "cammonitor"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ipwebcam",
+      "srcPath": "./ipwebcam",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "ipwebcam"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "infuse",
+      "srcPath": "./infuse",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "infuse"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "streamshow",
+      "srcPath": "./streamshow",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "streamshow"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cameraviewer",
+      "srcPath": "./cameraviewer",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "cameraviewer"
           ]
         }
       ]

@@ -343,6 +343,24 @@
     { "name": "person_event_log", "value": "侦测事件" },
     { "name": "person_no_events", "value": "暂无事件" },
     { "name": "person_event_meta", "value": "置信度 %s · %s" },
-    { "name": "scan_to_connect", "value": "扫码连接" }
+    { "name": "scan_to_connect", "value": "扫码连接" },
+
+    { "name": "ipcam_uptime", "value": "运行时长" },
+    { "name": "ipcam_torch", "value": "手电筒" },
+    { "name": "ipcam_zoom", "value": "变焦" },
+    { "name": "ipcam_how_to_connect_rtsp_hint", "value": "同一 Wi-Fi 网络下，用 VLC 等支持 RTSP 的播放器打开上方地址，或扫码连接" },
+    { "name": "ipcam_how_to_connect_rtmp_hint", "value": "画面将推送到设置中配置的 RTMP 服务器，可在服务器端拉流查看" },
+    { "name": "toast_address_copied", "value": "地址已复制" },
+    { "name": "ipcam_video_settings", "value": "视频设置" },
+    { "name": "ipcam_settings_locked_hint", "value": "停止推流后可修改" },
+    { "name": "ipcam_resolution", "value": "分辨率" },
+    { "name": "ipcam_quality", "value": "画质" },
+    { "name": "ipcam_framerate", "value": "帧率" },
+    { "name": "ipcam_resolution_480p", "value": "标清 480p" },
+    { "name": "ipcam_resolution_720p", "value": "高清 720p" },
+    { "name": "ipcam_resolution_1080p", "value": "超清 1080p" },
+    { "name": "ipcam_quality_low", "value": "流畅" },
+    { "name": "ipcam_quality_balanced", "value": "均衡" },
+    { "name": "ipcam_quality_high", "value": "高清" }
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "StreamShow" },
+    { "name": "module_desc", "value": "StreamShow entry module" },
+    { "name": "ability_desc", "value": "Multi-channel camera video wall with ONVIF discovery" }
+  ]
+}

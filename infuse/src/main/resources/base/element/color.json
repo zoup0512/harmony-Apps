@@ -1,0 +1,12 @@
+{
+  "color": [
+    { "name": "start_window_background", "value": "#12101A" },
+    { "name": "brand_primary", "value": "#FF8C42" },
+    { "name": "brand_accent", "value": "#FF5E3A" },
+    { "name": "bg_dark", "value": "#12101A" },
+    { "name": "bg_card", "value": "#1D1928" },
+    { "name": "bg_elevated", "value": "#272134" },
+    { "name": "text_primary", "value": "#F5F2FA" },
+    { "name": "text_secondary", "value": "#9C93AE" }
+  ]
+}

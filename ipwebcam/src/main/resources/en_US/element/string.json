@@ -1,0 +1,9 @@
+{
+  "string": [
+    { "name": "EntryAbility_label", "value": "IP Webcam" },
+    { "name": "module_desc", "value": "IP Webcam entry module" },
+    { "name": "ability_desc", "value": "Turn your phone into a network camera" },
+    { "name": "reason_camera", "value": "Capture video for streaming over the network" },
+    { "name": "reason_mic", "value": "Capture audio for streaming over the network" }
+  ]
+}

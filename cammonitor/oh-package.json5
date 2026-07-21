@@ -1,0 +1,1 @@
+{ "name": "cammonitor", "version": "1.0.0", "description": "Cam Monitor entry module", "main": "", "author": "razor.tools", "license": "Apache-2.0", "dependencies": {} }

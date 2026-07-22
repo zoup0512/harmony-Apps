@@ -54,7 +54,7 @@
     },
     {
       "name": "cams",
-      "srcPath": "./cams",
+      "srcPath": "./surveillance/cams",
       "targets": [
         {
           "name": "default",
@@ -66,7 +66,7 @@
     },
     {
       "name": "guessnumber",
-      "srcPath": "./guessnumber",
+      "srcPath": "./games/guessnumber",
       "targets": [
         {
           "name": "default",
@@ -78,7 +78,7 @@
     },
     {
       "name": "goweb",
-      "srcPath": "./goweb",
+      "srcPath": "./tools/goweb",
       "targets": [
         {
           "name": "default",
@@ -90,7 +90,7 @@
     },
     {
       "name": "fastfurious",
-      "srcPath": "./fastfurious",
+      "srcPath": "./games/fastfurious",
       "targets": [
         {
           "name": "default",
@@ -102,7 +102,7 @@
     },
     {
       "name": "grsaiagi",
-      "srcPath": "./grsaiagi",
+      "srcPath": "./tools/grsaiagi",
       "targets": [
         {
           "name": "default",
@@ -114,7 +114,7 @@
     },
     {
       "name": "kart",
-      "srcPath": "./kart",
+      "srcPath": "./games/kart",
       "targets": [
         {
           "name": "default",
@@ -126,7 +126,7 @@
     },
     {
       "name": "memorygame",
-      "srcPath": "./memorygame",
+      "srcPath": "./games/memorygame",
       "targets": [
         {
           "name": "default",
@@ -138,7 +138,7 @@
     },
     {
       "name": "webvideocast",
-      "srcPath": "./webvideocast",
+      "srcPath": "./media/webvideocast",
       "targets": [
         {
           "name": "default",
@@ -150,7 +150,7 @@
     },
     {
       "name": "cameraviewer",
-      "srcPath": "./cameraviewer",
+      "srcPath": "./surveillance/cameraviewer",
       "targets": [
         {
           "name": "default",
@@ -162,7 +162,7 @@
     },
     {
       "name": "cammonitor",
-      "srcPath": "./cammonitor",
+      "srcPath": "./surveillance/cammonitor",
       "targets": [
         {
           "name": "default",
@@ -174,7 +174,7 @@
     },
     {
       "name": "infuse",
-      "srcPath": "./infuse",
+      "srcPath": "./media/infuse",
       "targets": [
         {
           "name": "default",
@@ -186,7 +186,7 @@
     },
     {
       "name": "ipwebcam",
-      "srcPath": "./ipwebcam",
+      "srcPath": "./surveillance/ipwebcam",
       "targets": [
         {
           "name": "default",
@@ -198,7 +198,7 @@
     },
     {
       "name": "streamshow",
-      "srcPath": "./streamshow",
+      "srcPath": "./surveillance/streamshow",
       "targets": [
         {
           "name": "default",
@@ -210,7 +210,7 @@
     },
     {
       "name": "libwlmedia",
-      "srcPath": "./libwlmedia",
+      "srcPath": "./libs/libwlmedia",
       "targets": [
         {
           "name": "default",

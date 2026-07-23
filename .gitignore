@@ -27,6 +27,11 @@ signing.properties
 *.jks
 *.keystore
 secret.key
+# Whitelist committed debug signing materials for the main module
+!app/sign/debug/*.p12
+!app/sign/debug/*.jks
+!app/sign/debug/*.keystore
+!app/sign/debug/signing.properties
 *.log
 *.tmp
 *.dump

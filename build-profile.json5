@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\vyron\\.ohos\\config\\default_harmony-Apps_kBZRMsFvTAAMwXV27aYzV1RGAKJWyxvSAcILcO83tX4=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001B678C5B8153BA000EE48752B083DEDC4B663F8AB2FB804C1602084C7AE0C0779B8F55399D8EF2BD",
-          "profile": "C:\\Users\\vyron\\.ohos\\config\\default_harmony-Apps_kBZRMsFvTAAMwXV27aYzV1RGAKJWyxvSAcILcO83tX4=.p7b",
+          "certpath": "app/sign/debug/Apps.cer",
+          "keyAlias": "debugkey",
+          "keyPassword": "x121169225",
+          "profile": "app/sign/debug/AppsDebug.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\vyron\\.ohos\\config\\default_harmony-Apps_kBZRMsFvTAAMwXV27aYzV1RGAKJWyxvSAcILcO83tX4=.p12",
-          "storePassword": "0000001BAEF82388AAF3B422AA0A65FB981B70E3C8CB01224F43D7A73FE8DB42745F3E27F96F785E3F417D"
+          "storeFile": "app/sign/debug/Apps.p12",
+          "storePassword": "x121169225"
         }
       }
     ],

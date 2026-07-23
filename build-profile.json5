@@ -7,11 +7,11 @@
         "material": {
           "certpath": "app/sign/debug/Apps.cer",
           "keyAlias": "debugkey",
-          "keyPassword": "x121169225",
+          "keyPassword": "0000001a0f8792891281d52daedeabff4a258f3d5fd15ffd84bad0d10761a7d1d507244695f794824f67",
           "profile": "app/sign/debug/AppsDebug.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "app/sign/debug/Apps.p12",
-          "storePassword": "x121169225"
+          "storePassword": "0000001a0f8792891281d52daedeabff4a258f3d5fd15ffd84bad0d10761a7d1d507244695f794824f67"
         }
       }
     ],

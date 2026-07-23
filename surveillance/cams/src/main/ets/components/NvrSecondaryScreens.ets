@@ -3,7 +3,7 @@ import { buildPhoneRtspAddress } from '../utils/NetworkUtils';
 import { CameraStreamManager, StreamStatus, PersonEventLog } from '../utils/CameraStreamManager';
 import { common } from '@kit.AbilityKit';
 import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, window } from '@kit.ArkUI';
 import { PrefStore } from '../utils/PrefStore';
 
 function showToast(message: string): void {
@@ -115,6 +115,14 @@ export struct ActivityStreamScreen {
   @State qualityKey: string = 'balanced';
   @State fpsValue: number = 30;
   @State elapsedText: string = '00:00:00';
+  @State settingsExpanded: boolean = true;
+  @State isMuted: boolean = false;
+  @State videoAspectIs169: boolean = false;
+  @State isFullscreen: boolean = false;
+  @State fullscreenControlsVisible: boolean = true;
+  @State screenWidth: number = 0;
+  @State screenHeight: number = 0;
+  private fullscreenControlsTimerId: number = -1;
   private streamStartedAtMs: number = 0;
   private elapsedTimerId: number = -1;
   private prefStore: PrefStore | null = null;
@@ -168,6 +176,8 @@ export struct ActivityStreamScreen {
 
   aboutToDisappear(): void {
     this.stopElapsedTimer();
+    this.stopFullscreenControlsTimer();
+    this.restoreOrientation();
     if (this.streamManager) {
       this.streamManager.release();
       this.streamManager = null;
@@ -218,6 +228,90 @@ export struct ActivityStreamScreen {
   private currentOutputText(): string {
     const res = this.findResolution(this.resolutionKey);
     return `${res.width}\u00d7${res.height} \u00b7 ${this.fpsValue}fps`;
+  }
+
+  private currentBitrateText(): string {
+    const kbps = Math.round(this.computeBitrate() / 8 / 1000);
+    return `${kbps}KB/s`;
+  }
+
+  private enterFullscreen(): void {
+    this.isFullscreen = true;
+    this.fullscreenControlsVisible = true;
+    this.resetFullscreenControlsTimer();
+    const context = getContext(this) as common.Context;
+    try {
+      window.getLastWindow(context).then((win: window.Window) => {
+        win.setPreferredOrientation(window.Orientation.LANDSCAPE);
+      });
+    } catch (e) {
+      console.error(`enterFullscreen setOrientation failed: ${(e as Error).message}`);
+    }
+  }
+
+  private exitFullscreen(): void {
+    this.isFullscreen = false;
+    this.stopFullscreenControlsTimer();
+    const context = getContext(this) as common.Context;
+    try {
+      window.getLastWindow(context).then((win: window.Window) => {
+        win.setPreferredOrientation(window.Orientation.AUTO_ROTATION);
+      });
+    } catch (e) {
+      console.error(`exitFullscreen setOrientation failed: ${(e as Error).message}`);
+    }
+  }
+
+  private restoreOrientation(): void {
+    if (!this.isFullscreen) return;
+    const context = getContext(this) as common.Context;
+    try {
+      window.getLastWindow(context).then((win: window.Window) => {
+        win.setPreferredOrientation(window.Orientation.AUTO_ROTATION);
+      });
+    } catch (e) {
+      console.error(`restoreOrientation failed: ${(e as Error).message}`);
+    }
+  }
+
+  private resetFullscreenControlsTimer(): void {
+    this.stopFullscreenControlsTimer();
+    if (this.fullscreenControlsVisible) {
+      this.fullscreenControlsTimerId = setTimeout(() => {
+        this.fullscreenControlsVisible = false;
+      }, 4000);
+    }
+  }
+
+  private stopFullscreenControlsTimer(): void {
+    if (this.fullscreenControlsTimerId !== -1) {
+      clearTimeout(this.fullscreenControlsTimerId);
+      this.fullscreenControlsTimerId = -1;
+    }
+  }
+
+  private getFullscreenVideoWidth(): Length {
+    if (this.screenWidth <= 0 || this.screenHeight <= 0) return '100%';
+    const res = this.findResolution(this.resolutionKey);
+    const videoAspect = res.width / res.height;
+    const screenAspect = this.screenWidth / this.screenHeight;
+    if (videoAspect > screenAspect) {
+      return this.screenWidth;
+    } else {
+      return Math.round(this.screenHeight * videoAspect);
+    }
+  }
+
+  private getFullscreenVideoHeight(): Length {
+    if (this.screenWidth <= 0 || this.screenHeight <= 0) return '100%';
+    const res = this.findResolution(this.resolutionKey);
+    const videoAspect = res.width / res.height;
+    const screenAspect = this.screenWidth / this.screenHeight;
+    if (videoAspect > screenAspect) {
+      return Math.round(this.screenWidth / videoAspect);
+    } else {
+      return this.screenHeight;
+    }
   }
 
   private connectHintText(): string {
@@ -420,324 +514,370 @@ export struct ActivityStreamScreen {
   }
 
   build(): void {
-    Column() {
-        Text($r('app.string.stream_mode_label'))
-          .fontSize(12)
-          .fontColor(this.onSurfaceVariantColor)
-          .fontWeight(FontWeight.Medium)
-          .width('100%')
+    if (this.isFullscreen) {
+      Stack() {
+        XComponent({
+          id: 'rtspCameraPreviewFullscreen',
+          type: XComponentType.SURFACE,
+          controller: this.xComponentController
+        })
+          .onLoad(() => {
+            this.previewSurfaceId = this.xComponentController.getXComponentSurfaceId();
+            console.info(`ActivityStreamScreen fullscreen XComponent.onLoad: surfaceId=${this.previewSurfaceId}`);
+            if (this.streamManager && this.previewSurfaceId) {
+              this.streamManager.initPreview(this.previewSurfaceId).then(() => {
+                this.torchSupported = this.streamManager?.hasTorchSupport() ?? false;
+                this.torchOn = this.streamManager?.isTorchOn() ?? false;
+                this.zoomRange = this.streamManager?.getZoomRange() ?? [1, 1];
+                this.zoomRatio = this.streamManager?.getZoomRatio() ?? 1;
+              }).catch((e: Error) => {
+                console.error(`ActivityStreamScreen fullscreen XComponent.onLoad: initPreview failed: ${e.message}`);
+              });
+            }
+          })
+          .width(this.getFullscreenVideoWidth())
+          .height(this.getFullscreenVideoHeight())
 
-        Row({ space: 4 }) {
-          Text($r('app.string.rtsp_server'))
-              .fontSize(14)
-              .fontColor(this.selectedStreamTool === 'rtsp' ? this.onPrimaryColor : this.onSurfaceVariantColor)
-              .fontWeight(this.selectedStreamTool === 'rtsp' ? FontWeight.Medium : FontWeight.Normal)
-              .layoutWeight(1)
-              .textAlign(TextAlign.Center)
-              .padding({ top: 9, bottom: 9 })
-              .backgroundColor(this.selectedStreamTool === 'rtsp' ? this.accentColor : Color.Transparent)
-              .borderRadius(10)
-              .onClick(() => {
-                if (this.isStreaming) return;
-                this.selectedStreamTool = 'rtsp';
-                this.streamManager?.setStreamMode('rtsp');
-                this.prefStore?.putString('ipcam_stream_mode', 'rtsp');
-              })
+        if (this.fullscreenControlsVisible) {
+          Row() {
+            Row({ space: 8 }) {
+              SymbolGlyph($r('sys.symbol.chevron_left'))
+                .fontSize(22)
+                .fontColor(['#FFFFFF'])
+                .onClick(() => this.exitFullscreen())
+              Text(this.selectedStreamTool === 'rtmp'
+                ? $r('app.string.rtmp_stream_to_server')
+                : $r('app.string.phone_rtsp_stream'))
+                .fontSize(16)
+                .fontColor('#FFFFFF')
+                .fontWeight(FontWeight.Bold)
+            }
+            .layoutWeight(1)
 
-            Text($r('app.string.rtmp_stream'))
-              .fontSize(14)
-              .fontColor(this.selectedStreamTool === 'rtmp' ? this.onPrimaryColor : this.onSurfaceVariantColor)
-              .fontWeight(this.selectedStreamTool === 'rtmp' ? FontWeight.Medium : FontWeight.Normal)
-              .layoutWeight(1)
-              .textAlign(TextAlign.Center)
-              .padding({ top: 9, bottom: 9 })
-              .backgroundColor(this.selectedStreamTool === 'rtmp' ? this.accentColor : Color.Transparent)
-              .borderRadius(10)
-              .onClick(() => {
-                if (this.isStreaming) return;
-                this.selectedStreamTool = 'rtmp';
-                if (this.streamManager) {
-                  this.streamManager.setStreamMode('rtmp');
-                  this.streamManager.setRtmpConfig(
-                    this.rtmpUrlInput,
-                    this.rtmpStreamKeyInput,
-                    this.rtmpUsernameInput,
-                    this.rtmpPasswordInput,
-                  );
-                }
-                this.prefStore?.putString('ipcam_stream_mode', 'rtmp');
-              })
+            Row({ space: 5 }) {
+              Circle({ width: 6, height: 6 })
+                .fill(this.isStreaming ? this.accentColor : this.onSurfaceVariantColor)
+              Text(this.isStreaming ? '推流中' : '待推流')
+                .fontSize(12)
+                .fontColor('#CCCCCC')
+            }
           }
           .width('100%')
-          .padding(3)
-          .backgroundColor(this.surfaceVariantColor)
-          .borderRadius(13)
-          .margin({ top: 8 })
+          .justifyContent(FlexAlign.SpaceBetween)
+          .alignItems(VerticalAlign.Center)
+          .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+          .linearGradient({
+            direction: GradientDirection.Bottom,
+            colors: [['#AA000000', 0.0], ['#00000000', 1.0]]
+          })
+          .align(Alignment.TopStart)
+        }
 
-          // Phone camera streaming card
-          Column() {
-            Row() {
-              Row({ space: 8 }) {
-                SymbolGlyph($r('sys.symbol.video_fill'))
-                  .fontSize(17)
-                  .fontColor([this.accentColor])
-                Text(this.selectedStreamTool === 'rtmp' ? $r('app.string.rtmp_stream_to_server') : $r('app.string.phone_rtsp_stream'))
-                  .fontSize(16)
-                  .fontColor(this.onSurfaceColor)
-                  .fontWeight(FontWeight.Bold)
-              }
-              .layoutWeight(1)
+        if (this.fullscreenControlsVisible) {
+          Row() {
+            SymbolGlyph(this.isStreaming ? $r('sys.symbol.pause') : $r('sys.symbol.play_fill'))
+              .fontSize(28)
+              .fontColor(['#FFFFFF'])
+              .onClick(() => {
+                if (this.isStreaming) {
+                  this.streamManager?.stopStream();
+                } else {
+                  if (this.selectedStreamTool === 'rtmp' && this.streamManager) {
+                    this.streamManager.setStreamMode('rtmp');
+                    this.streamManager.setRtmpConfig(
+                      this.rtmpUrlInput, this.rtmpStreamKeyInput,
+                      this.rtmpUsernameInput, this.rtmpPasswordInput,
+                    );
+                  }
+                  this.streamManager?.startStream();
+                }
+              })
 
-              Row({ space: 5 }) {
-                Circle({ width: 6, height: 6 })
-                  .fill(this.isStreaming ? this.onPrimaryColor : this.onSurfaceVariantColor)
-                Text(this.isStreaming ? $r('app.string.status_running') : $r('app.string.status_standby_btn'))
-                  .fontSize(12)
-                  .fontColor(this.isStreaming ? this.onPrimaryColor : this.onSurfaceVariantColor)
-                  .fontWeight(FontWeight.Medium)
+            Blank().layoutWeight(1)
+
+            if (this.isStreaming) {
+              Row({ space: 6 }) {
+                Text(this.currentOutputText())
+                  .fontSize(11)
+                  .fontColor('#CCCCCC')
+                Text(this.elapsedText)
+                  .fontSize(11)
+                  .fontColor('#CCCCCC')
               }
-                .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-                .backgroundColor(this.isStreaming ? this.accentColor : this.surfaceVariantColor)
-                .borderRadius(999)
             }
-            .width('100%')
-            .justifyContent(FlexAlign.SpaceBetween)
-            .alignItems(VerticalAlign.Center)
 
-            Text(this.statusText)
-              .fontSize(12)
-              .fontColor(this.onSurfaceVariantColor)
-              .margin({ top: 8 })
-              .width('100%')
+            Row({ space: 12 }) {
+              SymbolGlyph($r('sys.symbol.arrow_up_left_and_arrow_down_right'))
+                .fontSize(22)
+                .fontColor(['#FFFFFF'])
+                .onClick(() => this.exitFullscreen())
+            }
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.SpaceBetween)
+          .alignItems(VerticalAlign.Center)
+          .padding({ left: 16, right: 16, top: 10, bottom: 14 })
+          .linearGradient({
+            direction: GradientDirection.Top,
+            colors: [['#AA000000', 0.0], ['#00000000', 1.0]]
+          })
+          .align(Alignment.BottomStart)
+        }
+      }
+      .width('100%')
+      .height('100%')
+      .backgroundColor('#000000')
+      .onAreaChange((_oldValue: Area, newValue: Area) => {
+        this.screenWidth = Math.round(newValue.width as number);
+        this.screenHeight = Math.round(newValue.height as number);
+      })
+      .onClick(() => {
+        this.fullscreenControlsVisible = !this.fullscreenControlsVisible;
+        this.resetFullscreenControlsTimer();
+      })
+    } else {
+      Column() {
+        // === Dark camera area ===
+        Column() {
+          // Title + status row
+          Row() {
+            Row({ space: 8 }) {
+              SymbolGlyph($r('sys.symbol.video_fill'))
+                .fontSize(16)
+                .fontColor([this.accentColor])
+              Text(this.selectedStreamTool === 'rtmp'
+                ? $r('app.string.rtmp_stream_to_server')
+                : $r('app.string.phone_rtsp_stream'))
+                .fontSize(16)
+                .fontColor('#FFFFFF')
+                .fontWeight(FontWeight.Bold)
+              if (this.isStreaming) {
+                Text('推流中')
+                  .fontSize(11)
+                  .fontColor('#FFFFFF')
+                  .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                  .backgroundColor(this.accentColor)
+                  .borderRadius(999)
+              }
+            }
+            .layoutWeight(1)
+            if (this.isStreaming) {
+              Text(this.currentOutputText() + ' · ' + this.currentBitrateText())
+                .fontSize(11)
+                .fontColor('#999999')
+                .maxLines(1)
+            } else if (this.statusText !== '') {
+              Text(this.statusText)
+                .fontSize(11)
+                .fontColor('#999999')
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+          .padding({ left: 16, right: 16, top: 14, bottom: 10 })
 
-            Text($r('app.string.phone_camera_hint'))
-              .fontSize(12)
-              .fontColor(this.onSurfaceVariantColor)
-              .margin({ top: 4 })
-              .width('100%')
-
-            Stack({ alignContent: Alignment.TopStart }) {
+          // Video row: preview + right-side buttons
+          Row() {
+            // Stack: video + bottom overlay
+            Stack({ alignContent: Alignment.Bottom }) {
               XComponent({
                 id: 'rtspCameraPreview',
                 type: XComponentType.SURFACE,
                 controller: this.xComponentController
               })
-                .onLoad(() => {
-                  this.previewSurfaceId = this.xComponentController.getXComponentSurfaceId();
-                  console.info(`ActivityStreamScreen XComponent.onLoad: surfaceId=${this.previewSurfaceId}, hasStreamManager=${this.streamManager !== null}`);
-                  if (this.streamManager && this.previewSurfaceId) {
-                    this.streamManager.initPreview(this.previewSurfaceId).then(() => {
-                      console.info(`ActivityStreamScreen XComponent.onLoad: initPreview completed`);
-                      this.torchSupported = this.streamManager?.hasTorchSupport() ?? false;
-                      this.torchOn = this.streamManager?.isTorchOn() ?? false;
-                      this.zoomRange = this.streamManager?.getZoomRange() ?? [1, 1];
-                      this.zoomRatio = this.streamManager?.getZoomRatio() ?? 1;
-                    }).catch((e: Error) => {
-                      console.error(`ActivityStreamScreen XComponent.onLoad: initPreview failed: ${e.message}`);
-                    });
-                  } else {
-                    console.error(`ActivityStreamScreen XComponent.onLoad: streamManager=${this.streamManager !== null}, surfaceId='${this.previewSurfaceId}'`);
-                  }
-                })
-                .width('100%')
-                .height('100%')
-
-              if (!this.isStreaming && this.statusText === '') {
-                Text($r('app.string.preview_area'))
-                  .fontSize(16)
-                  .fontColor('#FFFFFF80')
-              }
-
-              if (this.isStreaming) {
-                Row({ space: 5 }) {
-                  Circle({ width: 6, height: 6 })
-                    .fill(this.errorColor)
-                  Text($r('app.string.status_live'))
-                    .fontSize(11)
-                    .fontColor('#FFFFFF')
-                    .fontWeight(FontWeight.Bold)
+              .onLoad(() => {
+                this.previewSurfaceId = this.xComponentController.getXComponentSurfaceId();
+                console.info(`ActivityStreamScreen XComponent.onLoad: surfaceId=${this.previewSurfaceId}`);
+                if (this.streamManager && this.previewSurfaceId) {
+                  this.streamManager.initPreview(this.previewSurfaceId).then(() => {
+                    this.torchSupported = this.streamManager?.hasTorchSupport() ?? false;
+                    this.torchOn = this.streamManager?.isTorchOn() ?? false;
+                    this.zoomRange = this.streamManager?.getZoomRange() ?? [1, 1];
+                    this.zoomRatio = this.streamManager?.getZoomRatio() ?? 1;
+                  }).catch((e: Error) => {
+                    console.error(`ActivityStreamScreen XComponent.onLoad: initPreview failed: ${e.message}`);
+                  });
                 }
-                .padding({ left: 9, right: 9, top: 4, bottom: 4 })
-                .backgroundColor('#00000080')
-                .borderRadius(999)
-                .margin(10)
-              }
-            }
-            .width('100%')
-            .aspectRatio(4 / 3)
-            .borderRadius(16)
-            .backgroundColor('#000000')
-            .margin({ top: 12 })
-            .clip(true)
-
-            Text(this.currentOutputText())
-              .fontSize(11)
-              .fontColor(this.onSurfaceVariantColor)
-              .margin({ top: 8 })
+              })
               .width('100%')
+              .height('100%')
 
-            Row({ space: 6 }) {
-              SymbolGlyph($r('sys.symbol.link'))
-                .fontSize(14)
-                .fontColor([this.onSurfaceVariantColor])
-              Text(this.streamTargetText())
-                .fontSize(12)
-                .fontColor(this.onSurfaceVariantColor)
-                .layoutWeight(1)
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-              SymbolGlyph($r('sys.symbol.square_on_square_fill'))
-                .fontSize(14)
-                .fontColor([this.accentColor])
-                .onClick(() => this.copyAddressToClipboard())
-            }
-            .width('100%')
-            .margin({ top: 6 })
-
-            if (this.isStreaming) {
-              Row({ space: 6 }) {
-                Text($r('app.string.ipcam_uptime'))
-                  .fontSize(12)
-                  .fontColor(this.onSurfaceVariantColor)
-                Text(this.elapsedText)
-                  .fontSize(12)
-                  .fontColor(this.onSurfaceColor)
-                  .fontWeight(FontWeight.Medium)
-              }
-              .width('100%')
-              .margin({ top: 6 })
-            }
-
-            Text(this.connectHintText())
-              .fontSize(12)
-              .fontColor(this.onSurfaceVariantColor)
-              .margin({ top: 6 })
-              .width('100%')
-
-            if (this.torchSupported || this.zoomRange[1] > this.zoomRange[0]) {
-              Row({ space: 16 }) {
-                if (this.torchSupported) {
-                  Row({ space: 6 }) {
-                    Text($r('app.string.ipcam_torch'))
-                      .fontSize(13)
-                      .fontColor(this.onSurfaceVariantColor)
-                    Toggle({ type: ToggleType.Switch, isOn: this.torchOn })
-                      .onChange((on: boolean) => this.onToggleTorch(on))
-                  }
-                }
-                if (this.zoomRange[1] > this.zoomRange[0]) {
-                  Row({ space: 8 }) {
-                    Text($r('app.string.ipcam_zoom'))
-                      .fontSize(13)
-                      .fontColor(this.onSurfaceVariantColor)
-                    Slider({ value: this.zoomRatio, min: this.zoomRange[0], max: this.zoomRange[1], step: 0.1 })
-                      .layoutWeight(1)
-                      .selectedColor(this.accentColor)
-                      .onChange((value: number) => this.onZoomChange(value))
-                    Text(`${this.zoomRatio.toFixed(1)}x`)
-                      .fontSize(12)
-                      .fontColor(this.onSurfaceVariantColor)
-                  }
-                  .layoutWeight(1)
-                }
-              }
-              .width('100%')
-              .margin({ top: 12 })
-            }
-
-            if (this.selectedStreamTool === 'rtsp') {
+              // Bottom gradient overlay + controls
               Column() {
-                Column() {
-                  QRCode(this.rtspAddress)
-                    .width(150)
-                    .height(150)
+                Blank().layoutWeight(1)
+                Row() {
+                  SymbolGlyph(this.isStreaming ? $r('sys.symbol.pause') : $r('sys.symbol.play_fill'))
+                    .fontSize(26)
+                    .fontColor(['#FFFFFF'])
+                    .onClick(() => {
+                      if (this.isStreaming) {
+                        this.streamManager?.stopStream();
+                      } else {
+                        if (this.selectedStreamTool === 'rtmp' && this.streamManager) {
+                          this.streamManager.setStreamMode('rtmp');
+                          this.streamManager.setRtmpConfig(
+                            this.rtmpUrlInput, this.rtmpStreamKeyInput,
+                            this.rtmpUsernameInput, this.rtmpPasswordInput,
+                          );
+                        }
+                        this.streamManager?.startStream();
+                      }
+                    })
+                  Blank().layoutWeight(1)
+                  Row({ space: 5 }) {
+                    Circle({ width: 7, height: 7 })
+                      .fill(this.isStreaming ? this.accentColor : '#555555')
+                    Text(this.isStreaming ? ('延迟 ~0.5s') : (this.statusText || '待推流'))
+                      .fontSize(12)
+                      .fontColor('#CCCCCC')
+                  }
+                  Blank().layoutWeight(1)
+                  Row({ space: 6 }) {
+                    Text(this.isStreaming ? '推流中' : '未推流')
+                      .fontSize(11)
+                      .fontColor(this.isStreaming ? this.accentColor : '#888888')
+                    Toggle({ type: ToggleType.Switch, isOn: this.isStreaming })
+                      .selectedColor(this.accentColor)
+                      .width(44)
+                      .height(24)
+                      .onChange((on: boolean) => {
+                        if (on) {
+                          if (this.selectedStreamTool === 'rtmp' && this.streamManager) {
+                            this.streamManager.setStreamMode('rtmp');
+                            this.streamManager.setRtmpConfig(
+                              this.rtmpUrlInput, this.rtmpStreamKeyInput,
+                              this.rtmpUsernameInput, this.rtmpPasswordInput,
+                            );
+                          }
+                          this.streamManager?.startStream();
+                        } else {
+                          this.streamManager?.stopStream();
+                        }
+                      })
+                  }
                 }
-                .padding(10)
-                .backgroundColor('#FFFFFF')
-                .borderRadius(12)
+                .width('100%')
+                .padding({ left: 14, right: 10, top: 8, bottom: 10 })
+                .alignItems(VerticalAlign.Center)
+              }
+              .width('100%')
+              .height('100%')
+              .linearGradient({
+                direction: GradientDirection.Top,
+                colors: [['#BB000000', 0.0], ['#00000000', 0.45], ['#00000000', 1.0]]
+              })
+            }
+            .layoutWeight(1)
+            .aspectRatio(this.videoAspectIs169 ? 16 / 9 : 4 / 3)
+            .backgroundColor('#000000')
 
-                Text($r('app.string.scan_to_connect'))
-                  .fontSize(12)
-                  .fontColor(this.onSurfaceVariantColor)
-                  .margin({ top: 10 })
+            // Right-side control buttons
+            Column({ space: 0 }) {
+              Column({ space: 4 }) {
+                SymbolGlyph($r('sys.symbol.camera'))
+                  .fontSize(22)
+                  .fontColor(['#FFFFFF'])
+                Text('切换')
+                  .fontSize(10)
+                  .fontColor('#BBBBBB')
               }
               .width('100%')
               .alignItems(HorizontalAlign.Center)
-              .padding(16)
-              .margin({ top: 12 })
-              .backgroundColor(this.surfaceVariantColor)
-              .borderRadius(16)
-            }
+              .padding({ top: 14, bottom: 14 })
+              .onClick(() => {
+                if (this.streamManager) {
+                  this.streamManager.switchCamera().then(() => {
+                    this.useFrontCamera = this.streamManager!.isFrontCamera();
+                    this.torchSupported = this.streamManager!.hasTorchSupport();
+                    this.torchOn = this.streamManager!.isTorchOn();
+                    this.zoomRange = this.streamManager!.getZoomRange();
+                    this.zoomRatio = this.streamManager!.getZoomRatio();
+                  }).catch((e: Error) => {
+                    console.error(`switchCamera failed: ${e.message}`);
+                    this.useFrontCamera = this.streamManager!.isFrontCamera();
+                  });
+                }
+              })
 
-            Row({ space: 10 }) {
-              Button(this.useFrontCamera ? $r('app.string.switch_to_back') : $r('app.string.switch_to_front'))
-                .layoutWeight(1)
-                .height(46)
-                .fontColor(this.onSurfaceColor)
-                .backgroundColor(this.surfaceVariantColor)
-                .borderRadius(12)
-                .onClick(() => {
-                  if (this.streamManager) {
-                    console.info(`ActivityStreamScreen switchCamera onClick: BEFORE ui_useFrontCamera=${this.useFrontCamera}, mgr_useFrontCamera=${this.streamManager.isFrontCamera()}`);
-                    this.streamManager.switchCamera().then(() => {
-                      const mgrFront = this.streamManager!.isFrontCamera();
-                      console.info(`ActivityStreamScreen switchCamera then: mgr_useFrontCamera=${mgrFront}, old ui_useFrontCamera=${this.useFrontCamera}`);
-                      this.useFrontCamera = mgrFront;
-                      this.torchSupported = this.streamManager!.hasTorchSupport();
-                      this.torchOn = this.streamManager!.isTorchOn();
-                      this.zoomRange = this.streamManager!.getZoomRange();
-                      this.zoomRatio = this.streamManager!.getZoomRatio();
-                      console.info(`ActivityStreamScreen switchCamera then: AFTER ui_useFrontCamera=${this.useFrontCamera}`);
-                    }).catch((e: Error) => {
-                      console.error(`ActivityStreamScreen switchCamera failed: ${e.message}`);
-                      const mgrFront = this.streamManager!.isFrontCamera();
-                      console.info(`ActivityStreamScreen switchCamera catch: reverting ui to mgr_useFrontCamera=${mgrFront}`);
-                      this.useFrontCamera = mgrFront;
-                    });
-                  } else {
-                    console.warn('ActivityStreamScreen switchCamera onClick: streamManager is null');
-                  }
-                })
-              Button(this.isStreaming ? $r('app.string.stop_stream') : $r('app.string.start_stream'))
-                .layoutWeight(1)
-                .height(46)
-                .fontColor(this.onPrimaryColor)
-                .backgroundColor(this.isStreaming ? this.errorColor : this.accentColor)
-                .borderRadius(12)
-                .onClick(() => {
-                  if (this.isStreaming) {
-                    this.streamManager?.stopStream();
-                  } else {
-                    if (this.selectedStreamTool === 'rtmp' && this.streamManager) {
-                      this.streamManager.setStreamMode('rtmp');
-                      this.streamManager.setRtmpConfig(
-                        this.rtmpUrlInput,
-                        this.rtmpStreamKeyInput,
-                        this.rtmpUsernameInput,
-                        this.rtmpPasswordInput,
-                      );
-                    }
-                    this.streamManager?.startStream();
-                  }
-                })
+              Column({ space: 4 }) {
+                SymbolGlyph(this.isMuted ? $r('sys.symbol.speaker_slash') : $r('sys.symbol.speaker_wave_2'))
+                  .fontSize(22)
+                  .fontColor(['#FFFFFF'])
+                Text('静音')
+                  .fontSize(10)
+                  .fontColor('#BBBBBB')
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Center)
+              .padding({ top: 14, bottom: 14 })
+              .onClick(() => { this.isMuted = !this.isMuted; })
+
+              Column({ space: 4 }) {
+                Text(this.videoAspectIs169 ? '4:3' : '16:9')
+                  .fontSize(11)
+                  .fontColor('#FFFFFF')
+                  .fontWeight(FontWeight.Bold)
+                  .borderWidth(1)
+                  .borderColor('#AAAAAA')
+                  .padding({ left: 4, right: 4, top: 2, bottom: 2 })
+                  .borderRadius(4)
+                Text('比例')
+                  .fontSize(10)
+                  .fontColor('#BBBBBB')
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Center)
+              .padding({ top: 14, bottom: 14 })
+              .onClick(() => { this.videoAspectIs169 = !this.videoAspectIs169; })
+
+              Column({ space: 4 }) {
+                SymbolGlyph($r('sys.symbol.arrow_up_left_and_arrow_down_right'))
+                  .fontSize(22)
+                  .fontColor(['#FFFFFF'])
+                Text('全屏')
+                  .fontSize(10)
+                  .fontColor('#BBBBBB')
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Center)
+              .padding({ top: 14, bottom: 14 })
+              .onClick(() => this.enterFullscreen())
             }
-            .width('100%')
-            .margin({ top: 12 })
+            .width(62)
+            .backgroundColor('#111111')
           }
           .width('100%')
-          .borderRadius(20)
-          .backgroundColor(this.surfaceColor)
-          .padding(16)
-          .margin({ top: 14 })
+          .alignItems(VerticalAlign.Top)
+        }
+        .backgroundColor('#000000')
+        .width('100%')
 
+        // === Settings collapse toggle ===
+        Row({ space: 6 }) {
+          SymbolGlyph(this.settingsExpanded ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
+            .fontSize(14)
+            .fontColor([this.onSurfaceVariantColor])
+          Text(this.settingsExpanded ? '收起设置' : '展开设置')
+            .fontSize(13)
+            .fontColor(this.onSurfaceVariantColor)
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .padding({ top: 10, bottom: 10 })
+        .onClick(() => { this.settingsExpanded = !this.settingsExpanded; })
+
+        // === Settings panel ===
+        if (this.settingsExpanded) {
           Column() {
+            // Video settings header
             Row() {
               Text($r('app.string.ipcam_video_settings'))
-                .fontSize(16)
+                .fontSize(18)
                 .fontColor(this.onSurfaceColor)
                 .fontWeight(FontWeight.Bold)
                 .layoutWeight(1)
-
               if (this.isStreaming) {
                 Text($r('app.string.ipcam_settings_locked_hint'))
                   .fontSize(11)
@@ -785,21 +925,161 @@ export struct ActivityStreamScreen {
             }
             .width('100%')
             .margin({ top: 6 })
-          }
-          .width('100%')
-          .borderRadius(20)
-          .backgroundColor(this.surfaceColor)
-          .padding(16)
-          .margin({ top: 14 })
 
-          Column() {
+            // Stream mode selector
+            Text($r('app.string.stream_mode_label'))
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .fontWeight(FontWeight.Medium)
+              .margin({ top: 20 })
+              .width('100%')
+            Row({ space: 4 }) {
+              Text($r('app.string.rtsp_server'))
+                .fontSize(14)
+                .fontColor(this.selectedStreamTool === 'rtsp' ? this.onPrimaryColor : this.onSurfaceVariantColor)
+                .fontWeight(this.selectedStreamTool === 'rtsp' ? FontWeight.Medium : FontWeight.Normal)
+                .layoutWeight(1)
+                .textAlign(TextAlign.Center)
+                .padding({ top: 9, bottom: 9 })
+                .backgroundColor(this.selectedStreamTool === 'rtsp' ? this.accentColor : Color.Transparent)
+                .borderRadius(10)
+                .onClick(() => {
+                  if (this.isStreaming) return;
+                  this.selectedStreamTool = 'rtsp';
+                  this.streamManager?.setStreamMode('rtsp');
+                  this.prefStore?.putString('ipcam_stream_mode', 'rtsp');
+                })
+              Text($r('app.string.rtmp_stream'))
+                .fontSize(14)
+                .fontColor(this.selectedStreamTool === 'rtmp' ? this.onPrimaryColor : this.onSurfaceVariantColor)
+                .fontWeight(this.selectedStreamTool === 'rtmp' ? FontWeight.Medium : FontWeight.Normal)
+                .layoutWeight(1)
+                .textAlign(TextAlign.Center)
+                .padding({ top: 9, bottom: 9 })
+                .backgroundColor(this.selectedStreamTool === 'rtmp' ? this.accentColor : Color.Transparent)
+                .borderRadius(10)
+                .onClick(() => {
+                  if (this.isStreaming) return;
+                  this.selectedStreamTool = 'rtmp';
+                  if (this.streamManager) {
+                    this.streamManager.setStreamMode('rtmp');
+                    this.streamManager.setRtmpConfig(
+                      this.rtmpUrlInput, this.rtmpStreamKeyInput,
+                      this.rtmpUsernameInput, this.rtmpPasswordInput,
+                    );
+                  }
+                  this.prefStore?.putString('ipcam_stream_mode', 'rtmp');
+                })
+            }
+            .width('100%')
+            .padding(3)
+            .backgroundColor(this.surfaceVariantColor)
+            .borderRadius(13)
+            .margin({ top: 6 })
+
+            // Stream target / address
+            Row({ space: 6 }) {
+              SymbolGlyph($r('sys.symbol.link'))
+                .fontSize(14)
+                .fontColor([this.onSurfaceVariantColor])
+              Text(this.streamTargetText())
+                .fontSize(12)
+                .fontColor(this.onSurfaceVariantColor)
+                .layoutWeight(1)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+              SymbolGlyph($r('sys.symbol.square_on_square_fill'))
+                .fontSize(14)
+                .fontColor([this.accentColor])
+                .onClick(() => this.copyAddressToClipboard())
+            }
+            .width('100%')
+            .margin({ top: 12 })
+
+            if (this.isStreaming) {
+              Row({ space: 6 }) {
+                Text($r('app.string.ipcam_uptime'))
+                  .fontSize(12)
+                  .fontColor(this.onSurfaceVariantColor)
+                Text(this.elapsedText)
+                  .fontSize(12)
+                  .fontColor(this.onSurfaceColor)
+                  .fontWeight(FontWeight.Medium)
+              }
+              .width('100%')
+              .margin({ top: 8 })
+            }
+
+            Text(this.connectHintText())
+              .fontSize(12)
+              .fontColor(this.onSurfaceVariantColor)
+              .margin({ top: 8 })
+              .width('100%')
+
+            if (this.torchSupported || this.zoomRange[1] > this.zoomRange[0]) {
+              Row({ space: 16 }) {
+                if (this.torchSupported) {
+                  Row({ space: 6 }) {
+                    Text($r('app.string.ipcam_torch'))
+                      .fontSize(13)
+                      .fontColor(this.onSurfaceVariantColor)
+                    Toggle({ type: ToggleType.Switch, isOn: this.torchOn })
+                      .onChange((on: boolean) => this.onToggleTorch(on))
+                  }
+                }
+                if (this.zoomRange[1] > this.zoomRange[0]) {
+                  Row({ space: 8 }) {
+                    Text($r('app.string.ipcam_zoom'))
+                      .fontSize(13)
+                      .fontColor(this.onSurfaceVariantColor)
+                    Slider({ value: this.zoomRatio, min: this.zoomRange[0], max: this.zoomRange[1], step: 0.1 })
+                      .layoutWeight(1)
+                      .selectedColor(this.accentColor)
+                      .onChange((value: number) => this.onZoomChange(value))
+                    Text(`${this.zoomRatio.toFixed(1)}x`)
+                      .fontSize(12)
+                      .fontColor(this.onSurfaceVariantColor)
+                  }
+                  .layoutWeight(1)
+                }
+              }
+              .width('100%')
+              .margin({ top: 16 })
+            }
+
+            if (this.selectedStreamTool === 'rtsp') {
+              Column() {
+                Column() {
+                  QRCode(this.rtspAddress)
+                    .width(150)
+                    .height(150)
+                }
+                .padding(10)
+                .backgroundColor('#FFFFFF')
+                .borderRadius(12)
+                Text($r('app.string.scan_to_connect'))
+                  .fontSize(12)
+                  .fontColor(this.onSurfaceVariantColor)
+                  .margin({ top: 10 })
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Center)
+              .padding(16)
+              .margin({ top: 16 })
+              .backgroundColor(this.surfaceVariantColor)
+              .borderRadius(16)
+            }
+
+            Divider()
+              .color(this.outlineVariantColor)
+              .margin({ top: 20, bottom: 16 })
+
             Row() {
               Text($r('app.string.person_detection'))
                 .fontSize(16)
                 .fontColor(this.onSurfaceColor)
                 .fontWeight(FontWeight.Medium)
                 .layoutWeight(1)
-
               Toggle({ type: ToggleType.Switch, isOn: this.personDetectionEnabled })
                 .onChange((on: boolean) => {
                   this.personDetectionEnabled = on;
@@ -812,7 +1092,6 @@ export struct ActivityStreamScreen {
             .alignItems(VerticalAlign.Center)
 
             if (this.personDetectionEnabled) {
-              Divider().color(this.outlineVariantColor).margin({ top: 12, bottom: 12 })
               Row({ space: 6 }) {
                 Circle({ width: 8, height: 8 })
                   .fill(this.personDetected ? this.errorColor : this.onSurfaceVariantColor)
@@ -822,80 +1101,80 @@ export struct ActivityStreamScreen {
                   .fontWeight(FontWeight.Medium)
               }
               .width('100%')
+              .margin({ top: 10 })
             }
           }
           .width('100%')
-          .borderRadius(20)
-          .backgroundColor(this.surfaceColor)
-          .padding(16)
-          .margin({ top: 14 })
+          .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+          .backgroundColor(this.bgColor)
+        }
 
-          if (this.personDetectionEnabled) {
-            Row() {
-              Text($r('app.string.person_event_log'))
-                .fontSize(16)
+        // === Person detection events ===
+        if (this.personDetectionEnabled) {
+          Row() {
+            Text($r('app.string.person_event_log'))
+              .fontSize(16)
+              .fontColor(this.onSurfaceVariantColor)
+              .fontWeight(FontWeight.Medium)
+              .layoutWeight(1)
+            if (this.personEvents.length > 0) {
+              Text(String(this.personEvents.length))
+                .fontSize(12)
                 .fontColor(this.onSurfaceVariantColor)
-                .fontWeight(FontWeight.Medium)
-                .layoutWeight(1)
-              if (this.personEvents.length > 0) {
-                Text(String(this.personEvents.length))
-                  .fontSize(12)
-                  .fontColor(this.onSurfaceVariantColor)
-              }
-            }
-            .width('100%')
-            .margin({ top: 14, bottom: 4 })
-
-            if (this.personEvents.length === 0) {
-              Text($r('app.string.person_no_events'))
-                .fontSize(14)
-                .fontColor(this.onSurfaceVariantColor)
-                .width('100%')
-                .textAlign(TextAlign.Center)
-                .padding(24)
-            } else {
-              ForEach(this.personEvents, (evt: PersonEventLog) => {
-                Row() {
-                  Circle({ width: 8, height: 8 })
-                    .fill(this.errorColor)
-                    .margin({ right: 12 })
-
-                  Column() {
-                    Text(new Date(evt.timestamp).toLocaleTimeString())
-                      .fontSize(14)
-                      .fontColor(this.onSurfaceColor)
-                      .fontWeight(FontWeight.Medium)
-                    Text(this.personEventMetaText(evt))
-                      .fontSize(12)
-                      .fontColor(this.onSurfaceVariantColor)
-                      .margin({ top: 2 })
-                  }
-                  .layoutWeight(1)
-                  .alignItems(HorizontalAlign.Start)
-                }
-                .width('100%')
-                .borderRadius(14)
-                .backgroundColor(this.surfaceColor)
-                .padding(14)
-                .margin({ top: 8 })
-              }, (evt: PersonEventLog) => evt.timestamp.toString())
             }
           }
+          .width('100%')
+          .padding({ left: 18, right: 18, top: 14, bottom: 4 })
 
+          if (this.personEvents.length === 0) {
+            Text($r('app.string.person_no_events'))
+              .fontSize(14)
+              .fontColor(this.onSurfaceVariantColor)
+              .width('100%')
+              .textAlign(TextAlign.Center)
+              .padding({ top: 16, bottom: 16, left: 18, right: 18 })
+          } else {
+            ForEach(this.personEvents, (evt: PersonEventLog) => {
+              Row() {
+                Circle({ width: 8, height: 8 })
+                  .fill(this.errorColor)
+                  .margin({ right: 12 })
+                Column() {
+                  Text(new Date(evt.timestamp).toLocaleTimeString())
+                    .fontSize(14)
+                    .fontColor(this.onSurfaceColor)
+                    .fontWeight(FontWeight.Medium)
+                  Text(this.personEventMetaText(evt))
+                    .fontSize(12)
+                    .fontColor(this.onSurfaceVariantColor)
+                    .margin({ top: 2 })
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+              }
+              .width('100%')
+              .borderRadius(14)
+              .backgroundColor(this.surfaceColor)
+              .padding(14)
+              .margin({ top: 8, left: 18, right: 18 })
+            }, (evt: PersonEventLog) => evt.timestamp.toString())
+          }
+        }
+
+        // === Activity log ===
+        Column() {
           Row() {
             Text($r('app.string.activity_log'))
               .fontSize(16)
               .fontColor(this.onSurfaceVariantColor)
               .fontWeight(FontWeight.Medium)
               .layoutWeight(1)
-
             if (this.recordings.length > 0) {
               Text(this.activityCountText())
                 .fontSize(12)
                 .fontColor(this.onSurfaceVariantColor)
                 .margin({ right: 12 })
             }
-
             SymbolGlyph($r('sys.symbol.arrow_clockwise'))
               .fontSize(18)
               .fontColor([this.accentColor])
@@ -916,7 +1195,6 @@ export struct ActivityStreamScreen {
               }
               .width(88)
               .height(88)
-
               Text($r('app.string.no_activity'))
                 .fontSize(16)
                 .fontColor(this.onSurfaceColor)
@@ -939,7 +1217,6 @@ export struct ActivityStreamScreen {
                 .fontWeight(FontWeight.Medium)
                 .width('100%')
                 .margin({ top: 12 })
-
               ForEach(group.items, (recording: RecordingFile) => {
                 Row() {
                   Stack() {
@@ -952,7 +1229,6 @@ export struct ActivityStreamScreen {
                   .width(44)
                   .height(44)
                   .margin({ right: 12 })
-
                   Column() {
                     Text(this.cameraDisplayName(recording))
                       .fontSize(15)
@@ -967,7 +1243,6 @@ export struct ActivityStreamScreen {
                   }
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)
-
                   SymbolGlyph($r('sys.symbol.chevron_right'))
                     .fontSize(18)
                     .fontColor([this.onSurfaceVariantColor])
@@ -983,10 +1258,12 @@ export struct ActivityStreamScreen {
           }
         }
         .width('100%')
-        .padding({ left: 18, right: 18, top: 12, bottom: 100 })
+        .padding({ left: 18, right: 18, top: 0, bottom: 100 })
         .backgroundColor(this.bgColor)
+      }
     }
   }
+}
 
 @Component
 export struct SnapshotScreen {

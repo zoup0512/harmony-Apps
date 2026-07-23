@@ -471,6 +471,12 @@ export class CameraStreamManager {
   async startStream(): Promise<void> {
     if (this.streaming) return;
     console.info(`${TAG} startStream BEGIN`);
+    if (!this.previewReady || !this.cameraManager || !this.session) {
+      console.error(`${TAG} startStream ABORT: preview not ready (previewReady=${this.previewReady}, cameraManager=${this.cameraManager !== null}, session=${this.session !== null})`);
+      this.streaming = false;
+      this.statusCallback?.(this.buildStatus(rstr(this.context, 'cam_status_need_camera_permission')));
+      return;
+    }
     try {
       console.info(`${TAG} startStream: creating encoder ${this.width}x${this.height} bitrate=${this.bitrate} fps=${this.framerate}...`);
       this.encoderSurfaceId = createEncoder(this.width, this.height, this.bitrate, this.framerate,

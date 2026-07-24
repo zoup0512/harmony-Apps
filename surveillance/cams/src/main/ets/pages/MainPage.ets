@@ -95,6 +95,7 @@ struct MainPage {
   @State isAppLocked: boolean = false;
   @State pinInput: string = '';
   @State isInitializing: boolean = true;
+  @State activityFullscreen: boolean = false;
   @State showSetPinDialog: boolean = false;
   @State pendingClearRecordingsConfirm: boolean = false;
   @State showFeedbackDialog: boolean = false;
@@ -328,7 +329,9 @@ struct MainPage {
           this.PlaybackFullscreenContent()
         } else {
           Column() {
-            this.MainTopBar()
+            if (!this.activityFullscreen) {
+              this.MainTopBar()
+            }
             if (this.isInitializing) {
               Column() {
                 LoadingProgress()
@@ -402,6 +405,7 @@ struct MainPage {
                     rtmpPasswordInput: this.uiState.settings.rtmpPasswordInput,
                     onOpenRecording: (file: RecordingFile) => this.onOpenRecording(file),
                     onRefreshRecordings: () => this.onRefreshRecordings(),
+                    onFullscreenChange: (isFullscreen: boolean) => { this.activityFullscreen = isFullscreen; },
                   })
                 } else if (this.uiState.selectedTab === 3) {
                   SnapshotScreen({
@@ -487,14 +491,16 @@ struct MainPage {
             .scrollBar(BarState.Off)
             .align(Alignment.Top)
 
-            NvrBottomBar({
-              selectedTab: this.uiState.selectedTab,
-              accentColor: this.colors.primary,
-              bgColor: this.colors.background,
-              onSurfaceVariantColor: this.colors.onSurfaceVariant,
-              onPrimaryColor: this.colors.onPrimary,
-              onTabSelected: (index: number) => this.onTabSelected(index),
-            })
+            if (!this.activityFullscreen) {
+              NvrBottomBar({
+                selectedTab: this.uiState.selectedTab,
+                accentColor: this.colors.primary,
+                bgColor: this.colors.background,
+                onSurfaceVariantColor: this.colors.onSurfaceVariant,
+                onPrimaryColor: this.colors.onPrimary,
+                onTabSelected: (index: number) => this.onTabSelected(index),
+              })
+            }
             }
           }
         }
@@ -953,6 +959,9 @@ struct MainPage {
   private onTabSelected(index: number): void {
     this.vm?.onSelectedTabChange(index);
     this.vm?.onLongPressedCameraIdChange(null);
+    if (index !== 2) {
+      this.activityFullscreen = false;
+    }
     if (index === 2 || index === 3) {
       this.vm?.reloadRecordings().then(() => {
         this.vm?.reloadSnapshots().then(() => this.syncState());

@@ -7,13 +7,15 @@ import { RtspServer } from './RtspServer';
 import { RtmpPushManager, RtmpPushConfig, parseRtmpUrl, RtmpPushStatus } from './RtmpPushManager';
 import { PHONE_RTSP_PORT } from './NetworkUtils';
 import { rstr, rstrNum } from './I18nUtils';
-import { createEncoder, startEncoder, stopEncoder, releaseEncoder, EncodedFrame } from 'librtspencoder.so';
+import { createEncoder, startEncoder, stopEncoder, releaseEncoder, EncodedFrame,
+  createAudioEncoder, startAudioEncoder, stopAudioEncoder, releaseAudioEncoder, setAudioEncoderMuted, AacFrame } from 'librtspencoder.so';
 
 const TAG = 'CameraStreamManager';
 
 export interface StreamStatus {
   isStreaming: boolean;
   isPreviewReady: boolean;
+  isPreviewRunning: boolean;
   statusText: string;
   clientCount: number;
   personDetected: boolean;
@@ -21,6 +23,7 @@ export interface StreamStatus {
   torchSupported: boolean;
   zoomMin: number;
   zoomMax: number;
+  audioMuted: boolean;
 }
 
 export interface PersonEventLog {
@@ -50,6 +53,8 @@ export class CameraStreamManager {
   private session: camera.VideoSession | null = null;
   private encoderSurfaceId: string = '';
   private previewSurfaceId: string = '';
+  private audioEncoderReady: boolean = false;
+  private audioMuted: boolean = false;
   private useFrontCamera: boolean = false;
   private streaming: boolean = false;
   private previewReady: boolean = false;
@@ -119,6 +124,61 @@ export class CameraStreamManager {
     this.framerate = framerate;
     console.info(`${TAG} setVideoConfig: ${width}x${height} bitrate=${bitrate} fps=${framerate}`);
     return true;
+  }
+
+  setAudioMuted(muted: boolean): void {
+    this.audioMuted = muted;
+    setAudioEncoderMuted(muted);
+    console.info(`${TAG} setAudioMuted: ${muted}`);
+  }
+
+  isAudioMuted(): boolean {
+    return this.audioMuted;
+  }
+
+  private startAudio(): void {
+    try {
+      const result = createAudioEncoder(44100, 2, 128000, (frame: AacFrame) => {
+        this.onAudioFrame(frame);
+      });
+      if (result === 'ok') {
+        this.audioEncoderReady = true;
+        setAudioEncoderMuted(this.audioMuted);
+        startAudioEncoder();
+        console.info(`${TAG} audio encoder started`);
+      } else {
+        console.warn(`${TAG} audio encoder create failed, streaming video-only`);
+        this.audioEncoderReady = false;
+      }
+    } catch (e) {
+      console.error(`${TAG} startAudio failed (degrading to video-only): ${(e as Error).message}`);
+      this.audioEncoderReady = false;
+    }
+  }
+
+  private stopAudio(): void {
+    try {
+      stopAudioEncoder();
+    } catch (e) {
+      console.warn(`${TAG} stopAudioEncoder error: ${(e as Error).message}`);
+    }
+    try {
+      releaseAudioEncoder();
+    } catch (e) {
+      console.warn(`${TAG} releaseAudioEncoder error: ${(e as Error).message}`);
+    }
+    this.audioEncoderReady = false;
+    console.info(`${TAG} audio encoder stopped/released`);
+  }
+
+  private onAudioFrame(frame: AacFrame): void {
+    if (!this.streaming || this.audioMuted) return;
+    const data = new Uint8Array(frame.data);
+    if (this.streamMode === 'rtmp' && this.rtmpPushManager) {
+      this.rtmpPushManager.sendAacData(data, frame.pts, frame.isConfig);
+    } else {
+      this.rtspServer.sendAacData(data, frame.pts, frame.isConfig);
+    }
   }
 
   setPersonDetectionEnabled(enabled: boolean): void {
@@ -281,6 +341,53 @@ export class CameraStreamManager {
     console.info(`${TAG} restartPreview END: previewReady=${this.previewReady}`);
   }
 
+  private previewPaused: boolean = false;
+
+  isPreviewRunning(): boolean {
+    return this.previewReady && !this.previewPaused;
+  }
+
+  /**
+   * Pause the live camera preview (freeze the surface) without tearing down the
+   * whole camera session, when supported. Falls back to session stop+start.
+   * Must not be called while streaming (streaming requires preview running).
+   */
+  async pausePreview(): Promise<void> {
+    if (this.streaming) {
+      console.warn(`${TAG} pausePreview: ignored, streaming is active`);
+      return;
+    }
+    if (this.previewPaused || !this.session) {
+      return;
+    }
+    try {
+      await this.session.stop();
+      this.previewPaused = true;
+      console.info(`${TAG} pausePreview: session stopped (preview frozen)`);
+    } catch (e) {
+      console.warn(`${TAG} pausePreview failed: ${(e as Error).message}`);
+    }
+  }
+
+  /**
+   * Resume the live camera preview after pausePreview().
+   */
+  async resumePreview(): Promise<void> {
+    if (!this.previewPaused || !this.session) {
+      return;
+    }
+    try {
+      await this.session.start();
+      this.previewPaused = false;
+      console.info(`${TAG} resumePreview: session started (preview live)`);
+    } catch (e) {
+      console.warn(`${TAG} resumePreview failed, re-initializing preview: ${(e as Error).message}`);
+      // Fallback: rebuild the whole preview session.
+      await this.restartPreview();
+      this.previewPaused = false;
+    }
+  }
+
   private notifyStatus(): void {
     if (this.statusCallback) {
       this.statusCallback(this.buildStatus(this.getStatusText()));
@@ -292,6 +399,7 @@ export class CameraStreamManager {
     return {
       isStreaming: this.streaming,
       isPreviewReady: this.previewReady,
+      isPreviewRunning: this.previewReady && !this.previewPaused,
       statusText: statusText,
       clientCount: clientCount,
       personDetected: this.personDetected,
@@ -299,6 +407,7 @@ export class CameraStreamManager {
       torchSupported: this.torchSupported,
       zoomMin: this.zoomRange[0],
       zoomMax: this.zoomRange[1],
+      audioMuted: this.audioMuted,
     };
   }
 
@@ -334,6 +443,22 @@ export class CameraStreamManager {
     } catch (e) {
       const err = e as Error;
       console.error(`${TAG} ensureCameraPermission EXCEPTION: ${err.message}`);
+      return false;
+    }
+  }
+
+  private async ensureMicrophonePermission(): Promise<boolean> {
+    try {
+      const atManager: abilityAccessCtrl.AtManager = abilityAccessCtrl.createAtManager();
+      const uiContext = this.context as common.UIAbilityContext;
+      const permissions: Array<Permissions> = ['ohos.permission.MICROPHONE'];
+      console.info(`${TAG} ensureMicrophonePermission: requesting MICROPHONE permission...`);
+      const result = await atManager.requestPermissionsFromUser(uiContext, permissions);
+      console.info(`${TAG} ensureMicrophonePermission: request result authResults=${JSON.stringify(result.authResults)}`);
+      return result.authResults.length > 0 && result.authResults[0] === 0;
+    } catch (e) {
+      const err = e as Error;
+      console.error(`${TAG} ensureMicrophonePermission EXCEPTION: ${err.message}`);
       return false;
     }
   }
@@ -559,6 +684,14 @@ export class CameraStreamManager {
       startEncoder();
       console.info(`${TAG} startStream: encoder started`);
 
+      // Audio: request mic permission and start the AAC pipeline (degrades to video-only on failure).
+      const micGranted = await this.ensureMicrophonePermission();
+      if (micGranted) {
+        this.startAudio();
+      } else {
+        console.warn(`${TAG} startStream: MICROPHONE permission denied, streaming video-only`);
+      }
+
       if (this.personDetectionEnabled) {
         await this.initDetector();
         console.info(`${TAG} startStream: person detection enabled`);
@@ -585,6 +718,7 @@ export class CameraStreamManager {
       this.personDetected = false;
       await this.destroyDetector();
 
+      this.stopAudio();
       stopEncoder();
 
       if (this.videoOutput) {
@@ -634,6 +768,7 @@ export class CameraStreamManager {
 
       console.info(`${TAG} pauseStream: stopping encoder...`);
       stopEncoder();
+      this.stopAudio();
       console.info(`${TAG} pauseStream: encoder stopped`);
 
       if (this.videoOutput) {
@@ -753,6 +888,9 @@ export class CameraStreamManager {
       console.info(`${TAG} resumeStream: starting encoder...`);
       startEncoder();
       console.info(`${TAG} resumeStream: encoder started`);
+
+      // Step 4b: Restart audio pipeline (permission already granted during initial startStream).
+      this.startAudio();
 
       // Step 5: Re-enable person detection if needed
       if (this.personDetectionEnabled) {

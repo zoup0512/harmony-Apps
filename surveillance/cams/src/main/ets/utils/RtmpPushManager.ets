@@ -249,6 +249,7 @@ export class RtmpPushManager {
   private sps: Uint8Array | null = null;
   private pps: Uint8Array | null = null;
   private sequenceHeaderSent: boolean = false;
+  private audioSequenceHeaderSent: boolean = false;
   private chunkStates: Map<number, ChunkParseState> = new Map();
   private onStatusChange: ((status: RtmpPushStatus, message?: string) => void) | null = null;
   private startPts: number = 0;
@@ -880,6 +881,56 @@ export class RtmpPushManager {
     this.sendChunkMessage(4, 9, this.streamId, tagData, timestampMs).catch((e: Error) => {
       console.error(`${TAG} sendVideoNalu failed: ${e.message}`);
     });
+  }
+
+  /**
+   * Send an AAC frame as an RTMP audio tag (msgType=8).
+   * The first config frame (AudioSpecificConfig) is sent as an audio sequence header.
+   */
+  sendAacData(aac: Uint8Array, pts: number, isConfig: boolean): void {
+    if (!this.publishing) return;
+
+    if (isConfig) {
+      this.sendAudioSequenceHeader(aac);
+      return;
+    }
+
+    if (!this.audioSequenceHeaderSent) {
+      // Build the standard AAC-LC 44100 stereo AudioSpecificConfig if none received.
+      const asc = new Uint8Array([0x12, 0x10]);
+      this.sendAudioSequenceHeader(asc);
+    }
+
+    if (!this.hasFirstTimestamp) {
+      this.startPts = pts;
+      this.hasFirstTimestamp = true;
+    }
+    const timestampMs = Math.floor((pts - this.startPts) / 1000000) & 0x7FFFFFFF;
+
+    // Audio tag: [0xAF] (AAC, 44100, stereo) + [0x01] (AAC raw) + raw data
+    const tagData = new Uint8Array(2 + aac.length);
+    tagData[0] = 0xAF;
+    tagData[1] = 0x01;
+    tagData.set(aac, 2);
+
+    this.sendChunkMessage(4, 8, this.streamId, tagData, timestampMs).catch((e: Error) => {
+      console.error(`${TAG} sendAacData failed: ${e.message}`);
+    });
+  }
+
+  private sendAudioSequenceHeader(asc: Uint8Array): void {
+    if (!this.publishing) return;
+    // Audio tag: [0xAF] + [0x00] (AAC sequence header) + AudioSpecificConfig
+    const tagData = new Uint8Array(2 + asc.length);
+    tagData[0] = 0xAF;
+    tagData[1] = 0x00;
+    tagData.set(asc, 2);
+
+    this.sendChunkMessage(4, 8, this.streamId, tagData, 0).catch((e: Error) => {
+      console.error(`${TAG} sendAudioSequenceHeader failed: ${e.message}`);
+    });
+    this.audioSequenceHeaderSent = true;
+    console.info(`${TAG} sent AAC sequence header`);
   }
 
   async disconnect(): Promise<void> {

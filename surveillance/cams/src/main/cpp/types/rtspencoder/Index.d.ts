@@ -9,3 +9,15 @@ export interface EncodedFrame {
   flags: number;
   isKeyFrame: boolean;
 }
+
+export const createAudioEncoder: (sampleRate: number, channelCount: number, bitrate: number, callback: (frame: AacFrame) => void) => string;
+export const startAudioEncoder: () => void;
+export const stopAudioEncoder: () => void;
+export const releaseAudioEncoder: () => void;
+export const setAudioEncoderMuted: (muted: boolean) => void;
+
+export interface AacFrame {
+  data: ArrayBuffer;
+  pts: number;
+  isConfig: boolean;
+}
